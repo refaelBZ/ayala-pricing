@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
-import { Product } from '../types';
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, addDoc } from "firebase/firestore";
+import { Product, Order } from '../types';
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -165,10 +165,33 @@ export const fetchProducts = async (): Promise<Product[]> => {
 };
 
 export const saveProductToFirestore = async (product: Product): Promise<void> => {
-   // Uses setDoc to overwrite if exists (update) or create if new
-   await setDoc(doc(db, PRODUCTS_COLLECTION, product.id), product);
+  // Uses setDoc to overwrite if exists (update) or create if new
+  await setDoc(doc(db, PRODUCTS_COLLECTION, product.id), product);
 };
 
 export const deleteProductFromFirestore = async (productId: string): Promise<void> => {
   await deleteDoc(doc(db, PRODUCTS_COLLECTION, productId));
+};
+
+export const saveOrderToFirestore = async (order: Order): Promise<void> => {
+  const ordersCollection = collection(db, 'orders');
+  // If the order has an ID, use it (for updates), otherwise let Firestore generate one or use our generated one
+  if (order.id) {
+    await setDoc(doc(ordersCollection, order.id), order);
+  } else {
+    await addDoc(ordersCollection, order);
+  }
+};
+
+export const fetchOrders = async (): Promise<Order[]> => {
+  const querySnapshot = await getDocs(collection(db, 'orders'));
+  const orders: Order[] = [];
+  querySnapshot.forEach((doc) => {
+    orders.push(doc.data() as Order);
+  });
+  return orders;
+};
+
+export const deleteOrderFromFirestore = async (orderId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'orders', orderId));
 };
