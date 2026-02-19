@@ -11,10 +11,10 @@ import { BaseCard } from '../components/BaseCard';
 import { ToggleGroup } from '../components/ToggleGroup';
 import { saveOrderToFirestore, generateUUID } from '../services/storage';
 
-type Props = Pick<AppState, 'pendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'setView' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm' | 'setSelectedOrder'>;
+type Props = Pick<AppState, 'pendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'navigate' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm' | 'setSelectedOrder'>;
 
 export const OrderFormView: React.FC<Props> = ({
-    pendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, setView, showToast, setLoading, loadData, resetOrderForm, setSelectedOrder
+    pendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, navigate, showToast, setLoading, loadData, resetOrderForm, setSelectedOrder
 }) => {
     if (!pendingOrder) return null;
 
@@ -67,8 +67,7 @@ export const OrderFormView: React.FC<Props> = ({
             await loadData();
 
             // Navigate to the newly created order
-            setSelectedOrder(newOrder);
-            setView('ORDER_DETAILS');
+            navigate('ORDER_DETAILS', { orderId: newOrder.id, order: newOrder });
         } catch (e) {
             console.error(e);
             showToast('שגיאה בשמירת ההזמנה');
@@ -80,7 +79,7 @@ export const OrderFormView: React.FC<Props> = ({
     return (
         <div className="min-h-screen flex flex-col pb-32">
             {/* Sub-header */}
-            <SubHeader title="סיכום והזמנה" onBack={() => setView('CALCULATOR')} />
+            <SubHeader title="סיכום והזמנה" onBack={() => navigate('HOME')} />
 
             <div className="p-6 space-y-6 max-w-2xl mx-auto w-full">
 

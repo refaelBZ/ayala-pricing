@@ -4,14 +4,14 @@ import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 
-type Props = Pick<AppState, 'adminPasswordInput' | 'setAdminPasswordInput' | 'setView' | 'showToast' | 'loginAsAdmin'>;
+type Props = Pick<AppState, 'adminPasswordInput' | 'setAdminPasswordInput' | 'navigate' | 'showToast' | 'loginAsAdmin'>;
 
-export const AdminLoginView: React.FC<Props> = ({ adminPasswordInput, setAdminPasswordInput, setView, showToast, loginAsAdmin }) => {
+export const AdminLoginView: React.FC<Props> = ({ adminPasswordInput, setAdminPasswordInput, navigate, showToast, loginAsAdmin }) => {
     const handleLogin = () => {
         if (adminPasswordInput === import.meta.env.VITE_ADMIN_PASSWORD) {
             setAdminPasswordInput('');
             loginAsAdmin();
-            setView('ORDERS_DASHBOARD');
+            navigate('ORDERS_DASHBOARD');
         } else {
             showToast('סיסמה שגויה');
         }
@@ -39,7 +39,7 @@ export const AdminLoginView: React.FC<Props> = ({ adminPasswordInput, setAdminPa
                 />
 
                 <div className="flex gap-3">
-                    <Button variant="ghost" fullWidth onClick={() => setView('HOME')}>ביטול</Button>
+                    <Button variant="ghost" fullWidth onClick={() => navigate('HOME')}>ביטול</Button>
                     <Button fullWidth onClick={handleLogin} className="shadow-primary-glow">כניסה</Button>
                 </div>
             </div>

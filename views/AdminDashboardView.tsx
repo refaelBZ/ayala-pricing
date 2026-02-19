@@ -7,9 +7,9 @@ import { StickyFooter } from '../components/StickyFooter';
 import { IconButton } from '../components/IconButton';
 import { deleteProductFromFirestore, generateUUID } from '../services/storage';
 
-type Props = Pick<AppState, 'data' | 'setView' | 'setEditingProduct' | 'setLoading' | 'loadData' | 'logoutAdmin'>;
+type Props = Pick<AppState, 'data' | 'navigate' | 'setEditingProduct' | 'setLoading' | 'loadData' | 'logoutAdmin'>;
 
-export const AdminDashboardView: React.FC<Props> = ({ data, setView, setEditingProduct, setLoading, loadData, logoutAdmin }) => {
+export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditingProduct, setLoading, loadData, logoutAdmin }) => {
     return (
         <div className="min-h-screen p-6 pb-24">
             <header className="flex items-center justify-between mb-8 mt-2">
@@ -34,10 +34,7 @@ export const AdminDashboardView: React.FC<Props> = ({ data, setView, setEditingP
                             <IconButton
                                 icon={<Edit2 size={18} />}
                                 variant="accent"
-                                onClick={() => {
-                                    setEditingProduct(JSON.parse(JSON.stringify(product)));
-                                    setView('PRODUCT_EDITOR');
-                                }}
+                                onClick={() => navigate('PRODUCT_EDITOR', { productId: product.id, product: JSON.parse(JSON.stringify(product)) })}
                                 label="ערוך"
                             />
                             <IconButton
@@ -63,7 +60,7 @@ export const AdminDashboardView: React.FC<Props> = ({ data, setView, setEditingP
                     fullWidth
                     size="lg"
                     onClick={() => {
-                        setEditingProduct({
+                        const newProduct = {
                             id: generateUUID(),
                             name: '',
                             tiers: [
@@ -73,8 +70,8 @@ export const AdminDashboardView: React.FC<Props> = ({ data, setView, setEditingP
                             ],
                             messageTemplate: "היי! הצעת מחיר עבור {product}:\n{details}\nסה\"כ: {price} ₪",
                             categories: []
-                        });
-                        setView('PRODUCT_EDITOR');
+                        };
+                        navigate('PRODUCT_EDITOR', { productId: newProduct.id, product: newProduct });
                     }}
                 >
                     <Plus size={24} className="ml-2" />

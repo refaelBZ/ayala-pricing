@@ -6,10 +6,10 @@ import { Button } from '../components/Button';
 import { SubHeader } from '../components/SubHeader';
 import { SectionHeader } from '../components/SectionHeader';
 
-type Props = Pick<AppState, 'data' | 'selectedProductId' | 'selections' | 'setSelections' | 'setView' | 'setPendingOrder' | 'setDynamicDetails' | 'showToast'>;
+type Props = Pick<AppState, 'data' | 'selectedProductId' | 'selections' | 'setSelections' | 'navigate' | 'setPendingOrder' | 'setDynamicDetails' | 'showToast'>;
 
 export const CalculatorView: React.FC<Props> = ({
-    data, selectedProductId, selections, setSelections, setView, setPendingOrder, setDynamicDetails, showToast
+    data, selectedProductId, selections, setSelections, navigate, setPendingOrder, setDynamicDetails, showToast
 }) => {
     const product = data.products.find(p => p.id === selectedProductId);
     if (!product) return null;
@@ -50,7 +50,7 @@ export const CalculatorView: React.FC<Props> = ({
     return (
         <div className="min-h-screen flex flex-col">
             {/* Sub-header */}
-            <SubHeader title={product.name} onBack={() => setView('HOME')} />
+            <SubHeader title={product.name} onBack={() => navigate('HOME')} />
 
             {/* Content */}
             <div className="p-6 pb-40 space-y-8 overflow-y-auto">
@@ -190,7 +190,7 @@ export const CalculatorView: React.FC<Props> = ({
                                 }];
                                 setPendingOrder({ items, totalPrice: total });
                                 setDynamicDetails({});
-                                setView('ORDER_FORM');
+                                navigate('ORDER_FORM');
                             }}
                             className="px-6 h-14 rounded-2xl text-lg font-bold tracking-wide shadow-primary-glow"
                         >

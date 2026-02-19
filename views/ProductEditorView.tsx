@@ -11,9 +11,9 @@ import { BaseCard } from '../components/BaseCard';
 import { IconButton } from '../components/IconButton';
 import { saveProductToFirestore, generateUUID } from '../services/storage';
 
-type Props = Pick<AppState, 'editingProduct' | 'setEditingProduct' | 'setView' | 'setLoading' | 'loadData' | 'showToast'>;
+type Props = Pick<AppState, 'editingProduct' | 'setEditingProduct' | 'navigate' | 'setLoading' | 'loadData' | 'showToast'>;
 
-export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingProduct, setView, setLoading, loadData, showToast }) => {
+export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingProduct, navigate, setLoading, loadData, showToast }) => {
     if (!editingProduct) return null;
 
     const saveProduct = async () => {
@@ -22,7 +22,7 @@ export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingP
         await saveProductToFirestore(editingProduct);
         await loadData();
         setLoading(false);
-        setView('ADMIN_DASHBOARD');
+        navigate('ADMIN_DASHBOARD');
         showToast('נשמר בהצלחה');
     };
 
@@ -68,7 +68,7 @@ export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingP
     return (
         <div className="min-h-screen flex flex-col">
             {/* Sub-header */}
-            <SubHeader title="עריכת מוצר" onBack={() => setView('ADMIN_DASHBOARD')} backIcon="close" />
+            <SubHeader title="עריכת מוצר" onBack={() => navigate('ADMIN_DASHBOARD')} backIcon="close" />
 
             <div className="p-6 space-y-8 pb-32 overflow-y-auto">
                 {/* 1. Basic Info & Tiers */}

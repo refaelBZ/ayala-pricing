@@ -6,11 +6,11 @@ import { IconButton } from './IconButton';
 interface GlobalHeaderProps {
     view: ViewState;
     isAdmin: boolean;
-    setView: (v: ViewState) => void;
+    navigate: (v: ViewState) => void;
     logoutAdmin?: () => void;
 }
 
-export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setView, logoutAdmin }) => {
+export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, navigate, logoutAdmin }) => {
     const isCalculatorActive = view === 'HOME' || view === 'CALCULATOR' || view === 'ORDER_FORM';
     const isOrdersActive = view === 'ORDERS_DASHBOARD' || view === 'ORDER_DETAILS' || view === 'ORDER_EDIT';
     const isDashboardActive = view === 'ADMIN_DASHBOARD' || view === 'PRODUCT_EDITOR';
@@ -24,7 +24,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
                 <div className="flex items-center justify-between h-16">
                     {/* Brand */}
                     <button
-                        onClick={() => setView('HOME')}
+                        onClick={() => navigate('HOME')}
                         className="flex items-center gap-2 group transition-opacity hover:opacity-80"
                     >
                         <div className="w-9 h-9 bg-gradient-to-br from-accent-ghost to-accent-ghost/50 rounded-xl flex items-center justify-center text-accent-soft shadow-sm group-hover:shadow-primary-glow transition-all duration-base">
@@ -38,7 +38,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
 
                         {/* Calculator Tab */}
                         <button
-                            onClick={() => setView('HOME')}
+                            onClick={() => navigate('HOME')}
                             className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-slow flex items-center gap-2 whitespace-nowrap ${isCalculatorActive ? activeTabClass : inactiveTabClass}`}
                         >
                             מחשבון
@@ -48,7 +48,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
                         {isAdmin && (
                             <>
                                 <button
-                                    onClick={() => setView('ORDERS_DASHBOARD')}
+                                    onClick={() => navigate('ORDERS_DASHBOARD')}
                                     className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-slow flex items-center gap-2 whitespace-nowrap ${isOrdersActive ? activeTabClass : inactiveTabClass}`}
                                 >
                                     <ChefHat size={16} />
@@ -56,7 +56,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
                                 </button>
 
                                 <button
-                                    onClick={() => setView('ADMIN_DASHBOARD')}
+                                    onClick={() => navigate('ADMIN_DASHBOARD')}
                                     className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-slow flex items-center gap-2 whitespace-nowrap ${isDashboardActive ? activeTabClass : inactiveTabClass}`}
                                 >
                                     <LayoutDashboard size={16} />
@@ -75,12 +75,12 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
                                 label="יציאה"
                                 onClick={() => {
                                     if (logoutAdmin) logoutAdmin();
-                                    setView('HOME');
+                                    navigate('HOME');
                                 }}
                             />
                         ) : (
                             <button
-                                onClick={() => setView('ADMIN_LOGIN')}
+                                onClick={() => navigate('ADMIN_LOGIN')}
                                 className="px-4 py-2 text-xs font-bold text-secondary bg-white border border-light rounded-xl hover:bg-accent-ghost transition-colors duration-base flex items-center gap-2 shadow-sm"
                             >
                                 <Lock size={14} />

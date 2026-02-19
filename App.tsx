@@ -25,7 +25,7 @@ const App: React.FC = () => {
     <div className="min-h-screen" dir="rtl">
       {/* Global sticky header — always visible (except in public view) */}
       {!state.isPublicView && (
-        <GlobalHeader view={view} isAdmin={state.isAdmin} setView={state.setView} logoutAdmin={state.logoutAdmin} />
+        <GlobalHeader view={view} isAdmin={state.isAdmin} navigate={state.navigate} logoutAdmin={state.logoutAdmin} />
       )}
 
       {/* Notifications */}

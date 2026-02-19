@@ -8,7 +8,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { FilterChip } from '../components/FilterChip';
 import { IconButton } from '../components/IconButton';
 
-type Props = Pick<AppState, 'orders' | 'orderFilter' | 'setOrderFilter' | 'setView' | 'setSelectedOrder' | 'showToast' | 'setLoading' | 'loadData' | 'logoutAdmin'>;
+type Props = Pick<AppState, 'orders' | 'orderFilter' | 'setOrderFilter' | 'navigate' | 'setSelectedOrder' | 'showToast' | 'setLoading' | 'loadData' | 'logoutAdmin'>;
 
 type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
@@ -31,7 +31,7 @@ const getStatusLabel = (status: ExecutionStatus) => {
 };
 
 export const OrdersDashboardView: React.FC<Props> = ({
-    orders, orderFilter, setOrderFilter, setView, setSelectedOrder, showToast, setLoading, loadData, logoutAdmin
+    orders, orderFilter, setOrderFilter, navigate, setSelectedOrder, showToast, setLoading, loadData, logoutAdmin
 }) => {
     const filteredOrders = orders.filter(order => {
         if (orderFilter === 'all') return true;
@@ -125,10 +125,7 @@ export const OrdersDashboardView: React.FC<Props> = ({
                         {/* Middle - clickable to go to details */}
                         <div
                             className="mb-4 cursor-pointer"
-                            onClick={() => {
-                                setSelectedOrder(order);
-                                setView('ORDER_DETAILS');
-                            }}
+                            onClick={() => navigate('ORDER_DETAILS', { orderId: order.id, order })}
                         >
                             <h3 className="font-heading font-bold text-lg text-primary mb-1">{order.customer.name}</h3>
                             <div className="text-sm text-secondary line-clamp-2">

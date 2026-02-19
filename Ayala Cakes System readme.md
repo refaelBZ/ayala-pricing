@@ -184,7 +184,7 @@ The form is divided into sections:
   - Execution status: `pending`.
   - Payment status: `unpaid`.
   - Invoice issued: `false`.
-- On successful save → form is cleared and user returns to Home.
+- On successful save → the form is cleared and the user is immediately navigated to the **Order Details view** (`ORDER_DETAILS`) for the newly created order, where they can view the full receipt and share it via WhatsApp or a direct link.
 
 ---
 
@@ -215,21 +215,31 @@ Displays all orders as cards, sorted by event date (nearest first).
 
 ### Order Details View (`OrderDetailsView`)
 
-A read-only **"Kitchen Slip" (Paper Slip)** view styled as a printed receipt with a zigzag torn edge at the bottom.
+A read-only **"Kitchen Slip" (Paper Slip)** view styled as a printed receipt with a zigzag torn edge at the bottom. It is displayed both after order creation (customer flow) and when an admin views an order from the dashboard.
 
-**Displays:**
-- Customer name and event date (centered header).
+**Always displays:**
+- Order ID (first 6 characters).
+- Customer name and event date (Hebrew locale: "Sunday, 5 February").
 - Event time.
 - Ordered items with details and individual prices.
-- `selectedDetails` — the dynamic details the customer filled in (flavors, colors, etc.).
+- `selectedDetails` — the dynamic details the customer filled in (flavors, colors, etc.), rendered as `label: value` pairs.
+- Delivery type (`Self pickup` / `Delivery`) and address if applicable.
 - Total price.
-- Contact info: phone (click-to-call), email (click-to-mailto).
-- Delivery type + address.
-- Referral source.
-- Internal notes.
 - Status badges: payment, execution, invoice.
+- **Share actions** — always visible:
+  - **WhatsApp share** — opens a `wa.me` link with a pre-filled message and the direct public URL.
+  - **Copy link** — copies the direct public URL to clipboard and triggers a success Toast.
 
-**"Edit" button** navigates to the Order Edit view.
+**Admin-only (when `isPublicView` is false):**
+- Internal notes (shown in a highlighted box).
+- **"Edit Order"** button — navigates to the Order Edit view.
+- Back navigation to the Orders Dashboard.
+
+**Public mode (when `isPublicView` is true):**
+- The Global Header is hidden entirely.
+- Internal notes are hidden.
+- Edit controls are hidden.
+- A "Create New Order" button is shown at the bottom.
 
 ### Order Edit View (`OrderEditView`)
 
@@ -425,6 +435,22 @@ The **GlobalHeader** (sticky top bar) displays:
 
 The active tab receives a highlighted style (primary background + glow shadow).
 
+### Public Read-Only Order URL
+
+Every order has a permanent, shareable public URL in the form:
+```
+https://<app-domain>?orderId=<uuid>
+```
+
+When this URL is loaded:
+1. The app reads `orderId` from `window.location.search`.
+2. Sets `isPublicView = true` and `view = 'ORDER_DETAILS'`.
+3. Fetches all orders, finds the matching one, and sets it as `selectedOrder`.
+4. The Global Header is hidden — the user sees only the clean receipt view.
+5. No edit controls, internal notes, or admin navigation are shown.
+
+The sharing flow is initiated from the Order Details view via the **WhatsApp** or **Copy Link** buttons, which are visible to all users (admin and customer) after an order is created or viewed.
+
 ---
 
 ## 🎨 Design System & UI
@@ -567,6 +593,7 @@ There is no Redux, Context API, or external store.
 |-------------|----------|
 | **Core** | `data` (products), `loading`, `view` (ViewState), `toastMsg` |
 | **Admin** | `isAdmin` (from localStorage), `adminPasswordInput`, `loginAsAdmin()`, `logoutAdmin()` |
+| **Public View** | `isPublicView` — `true` when the app is loaded via a `?orderId=` URL; suppresses the header and admin controls |
 | **Orders** | `orders`, `orderFilter`, `selectedOrder` |
 | **Calculator** | `selectedProductId`, `selections` |
 | **Product Editor** | `editingProduct` |
@@ -578,8 +605,10 @@ There is no Redux, Context API, or external store.
 There is no React Router. Navigation is implemented via `ViewState` — an enum of 9 states stored in the `useAppState` hook:
 
 ```
-HOME → CALCULATOR → ORDER_FORM → (save) → HOME
-                                ↗
+?orderId= URL → ORDER_DETAILS (isPublicView=true, no header)
+
+HOME → CALCULATOR → ORDER_FORM → (save) → ORDER_DETAILS
+                                           ↓
 ADMIN_LOGIN → ORDERS_DASHBOARD → ORDER_DETAILS → ORDER_EDIT
            → ADMIN_DASHBOARD → PRODUCT_EDITOR
 ```

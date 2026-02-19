@@ -11,10 +11,10 @@ import { BaseCard } from '../components/BaseCard';
 import { ToggleGroup } from '../components/ToggleGroup';
 import { saveOrderToFirestore } from '../services/storage';
 
-type Props = Pick<AppState, 'selectedOrder' | 'setSelectedOrder' | 'orderForm' | 'setOrderForm' | 'setView' | 'showToast' | 'setLoading' | 'loadData'>;
+type Props = Pick<AppState, 'selectedOrder' | 'setSelectedOrder' | 'orderForm' | 'setOrderForm' | 'navigate' | 'showToast' | 'setLoading' | 'loadData'>;
 
 export const OrderEditView: React.FC<Props> = ({
-    selectedOrder, setSelectedOrder, orderForm, setOrderForm, setView, showToast, setLoading, loadData
+    selectedOrder, setSelectedOrder, orderForm, setOrderForm, navigate, showToast, setLoading, loadData
 }) => {
     if (!selectedOrder) return null;
 
@@ -44,7 +44,7 @@ export const OrderEditView: React.FC<Props> = ({
             showToast('הזמנה עודכנה בהצלחה');
             await loadData();
             setSelectedOrder(updatedOrder);
-            setView('ORDER_DETAILS');
+            navigate('ORDER_DETAILS', { orderId: updatedOrder.id, order: updatedOrder });
         } catch (e) {
             console.error(e);
             showToast('שגיאה בעדכון');
@@ -58,7 +58,7 @@ export const OrderEditView: React.FC<Props> = ({
             {/* Sub-header */}
             <SubHeader
                 title="עריכת הזמנה"
-                onBack={() => setView('ORDER_DETAILS')}
+                onBack={() => navigate('ORDER_DETAILS', { orderId: selectedOrder.id, order: selectedOrder })}
                 backIcon="close"
             />
 

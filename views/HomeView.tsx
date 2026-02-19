@@ -3,9 +3,9 @@ import { ChevronRight, Loader2 } from 'lucide-react';
 import { AppState } from '../hooks/useAppState';
 import { BaseCard } from '../components/BaseCard';
 
-type Props = Pick<AppState, 'data' | 'loading' | 'setView' | 'setSelectedProductId' | 'setSelections'>;
+type Props = Pick<AppState, 'data' | 'loading' | 'navigate' | 'setSelectedProductId' | 'setSelections'>;
 
-export const HomeView: React.FC<Props> = ({ data, loading, setView, setSelectedProductId, setSelections }) => {
+export const HomeView: React.FC<Props> = ({ data, loading, navigate, setSelectedProductId, setSelections }) => {
     return (
         <div className="min-h-screen pb-24 px-6 flex flex-col pt-6">
             <header className="mb-10 text-center">
@@ -33,7 +33,7 @@ export const HomeView: React.FC<Props> = ({ data, loading, setView, setSelectedP
                                     }
                                 });
                                 setSelections(initialSelections);
-                                setView('CALCULATOR');
+                                navigate('CALCULATOR');
                             }}
                         >
                             <div className="absolute top-0 right-0 w-24 h-24 bg-accent-ghost rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
