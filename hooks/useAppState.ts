@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppData, Product, Order, OrderItem, ViewState } from '../types';
-import { fetchProducts, fetchOrders } from '../services/storage';
+import { fetchProducts, fetchOrders, fetchOrderById, auth, onAuthStateChanged, loginAdmin, logoutAdmin as firebaseLogout, User } from '../services/storage';
 
 export type OrderFormState = {
     customerName: string;
@@ -25,8 +25,6 @@ const EMPTY_ORDER_FORM: OrderFormState = {
     deliveryAddress: '',
     orderNotes: '',
 };
-
-const ADMIN_LS_KEY = 'ayala_is_admin';
 
 // ─── URL ↔ ViewState mapping ─────────────────────────────────────────────────
 
@@ -92,19 +90,32 @@ export const useAppState = () => {
     const initialParsed = parsePath();
     const [view, setViewInternal] = useState<ViewState>(initialParsed.view);
 
-    // --- Admin State (persisted in localStorage) ---
-    const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-        return localStorage.getItem(ADMIN_LS_KEY) === 'true';
-    });
+    // --- Admin State (Firebase Auth) ---
+    // null = not yet resolved, User = authenticated, false = unauthenticated
+    const [firebaseUser, setFirebaseUser] = useState<User | null | false>(null);
+    const isAdmin = !!firebaseUser;
+    // authReady: true once onAuthStateChanged fires for the first time
+    const [authReady, setAuthReady] = useState(false);
 
-    const loginAsAdmin = () => {
-        localStorage.setItem(ADMIN_LS_KEY, 'true');
-        setIsAdmin(true);
+    // Subscribe to Firebase Auth state on mount
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
+            setFirebaseUser(user ?? false);
+            setAuthReady(true);
+        });
+        return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Login: call Firebase Auth, no longer touches localStorage
+    const loginAsAdmin = async (email: string, password: string): Promise<void> => {
+        await loginAdmin(email, password);
+        // onAuthStateChanged will update firebaseUser automatically
     };
 
-    const logoutAdmin = () => {
-        localStorage.removeItem(ADMIN_LS_KEY);
-        setIsAdmin(false);
+    // Logout: call Firebase Auth signOut (navigation handled by route guard and/or caller)
+    const logoutAdmin = async () => {
+        await firebaseLogout();
     };
 
     // --- Orders State ---
@@ -124,21 +135,35 @@ export const useAppState = () => {
     const [dynamicDetails, setDynamicDetails] = useState<Record<string, string[]>>({});
     const [orderForm, setOrderForm] = useState<OrderFormState>(EMPTY_ORDER_FORM);
 
-    // --- Admin Login Input (ephemeral, not persisted) ---
-    const [adminPasswordInput, setAdminPasswordInput] = useState('');
 
     // --- Data Loading ---
     const loadData = async () => {
         setLoading(true);
-        const [products, fetchedOrders] = await Promise.all([fetchProducts(), fetchOrders()]);
+        // Products are publicly readable; orders require admin auth (enforced by Firestore rules).
+        const products = await fetchProducts();
         setData({ products });
-        setOrders(fetchedOrders.sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()));
+
+        if (isAdmin) {
+            try {
+                const fetchedOrders = await fetchOrders();
+                setOrders(fetchedOrders.sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()));
+            } catch (e) {
+                console.error('Failed to fetch orders (permission denied?):', e);
+                setOrders([]);
+            }
+        } else {
+            setOrders([]);
+        }
+
         setLoading(false);
     };
 
+    // Load data once auth state is resolved
     useEffect(() => {
+        if (!authReady) return;
         loadData();
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [authReady, isAdmin]);
 
     // --- Navigate function: updates view state AND URL ────────────────────────
     const navigate = useCallback((
@@ -161,22 +186,6 @@ export const useAppState = () => {
         // Handle public ?orderId= URL
         if (parsed.isPublic) {
             setIsPublicView(true);
-        }
-
-        // For protected admin views, redirect to login if not authenticated
-        if (
-            (parsed.view === 'ORDERS_DASHBOARD' || parsed.view === 'ADMIN_DASHBOARD' ||
-                parsed.view === 'ORDER_DETAILS' || parsed.view === 'ORDER_EDIT' ||
-                parsed.view === 'PRODUCT_EDITOR') &&
-            !localStorage.getItem(ADMIN_LS_KEY) &&
-            !parsed.isPublic // don't redirect public order views
-        ) {
-            // Protect admin-only routes; redirect to login
-            if (parsed.view !== 'ORDER_DETAILS') {
-                setViewInternal('ADMIN_LOGIN');
-                window.history.replaceState({}, '', '/admin');
-                return;
-            }
         }
 
         // For transient views (ORDER_FORM, CALCULATOR) that can't be restored from URL alone,
@@ -202,13 +211,20 @@ export const useAppState = () => {
 
         const pendingOrderId = sessionStorage.getItem('_pendingOrderId');
         if (pendingOrderId) {
+            // Try to find the order in the loaded list (admin path)
             const order = orders.find(o => o.id === pendingOrderId);
             if (order) {
                 setSelectedOrder(order);
             } else {
-                // Order not found (e.g. deleted); fall back
-                setViewInternal('HOME');
-                window.history.replaceState({}, '', '/');
+                // Public path: fetch the single order by ID (allowed by Firestore rules)
+                fetchOrderById(pendingOrderId).then(fetchedOrder => {
+                    if (fetchedOrder) {
+                        setSelectedOrder(fetchedOrder);
+                    } else {
+                        setViewInternal('HOME');
+                        window.history.replaceState({}, '', '/');
+                    }
+                });
             }
             sessionStorage.removeItem('_pendingOrderId');
         }
@@ -226,6 +242,29 @@ export const useAppState = () => {
         }
     }, [loading]);
 
+    // --- Route guard: redirect unauthenticated users away from admin views ────
+    // Runs whenever auth state resolves or the view changes
+    useEffect(() => {
+        if (!authReady) return; // don't redirect before auth is resolved
+
+        const parsed = parsePath();
+        const adminOnlyViews: ViewState[] = ['ORDERS_DASHBOARD', 'ADMIN_DASHBOARD', 'ORDER_EDIT', 'PRODUCT_EDITOR'];
+
+        if (adminOnlyViews.includes(view) && !isAdmin) {
+            setViewInternal('ADMIN_LOGIN');
+            window.history.replaceState({}, '', '/admin');
+        }
+
+        // ORDER_DETAILS is allowed for both admin and public (share link)
+        // but only if isPublic is detected correctly above — no redirect needed
+        if (parsed.view === 'ADMIN_LOGIN' && isAdmin) {
+            // Already logged in, send to dashboard
+            setViewInternal('ORDERS_DASHBOARD');
+            window.history.replaceState({}, '', '/orders');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [authReady, isAdmin, view]);
+
     // --- Browser Back/Forward (popstate) ─────────────────────────────────────
     useEffect(() => {
         const handlePopState = () => {
@@ -237,12 +276,9 @@ export const useAppState = () => {
                 return;
             }
 
-            // Admin protection
-            if (
-                (parsed.view === 'ORDERS_DASHBOARD' || parsed.view === 'ADMIN_DASHBOARD' ||
-                    parsed.view === 'ORDER_EDIT' || parsed.view === 'PRODUCT_EDITOR') &&
-                !localStorage.getItem(ADMIN_LS_KEY)
-            ) {
+            // Admin protection (client-side layer; Firestore rules are the real guard)
+            const adminOnlyViews: ViewState[] = ['ORDERS_DASHBOARD', 'ADMIN_DASHBOARD', 'ORDER_EDIT', 'PRODUCT_EDITOR'];
+            if (adminOnlyViews.includes(parsed.view) && !isAdmin) {
                 setViewInternal('ADMIN_LOGIN');
                 window.history.replaceState({}, '', '/admin');
                 return;
@@ -264,7 +300,7 @@ export const useAppState = () => {
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [orders, data.products]);
+    }, [orders, data.products, isAdmin]);
 
     // --- Toast ---
     const showToast = (msg: string) => {
@@ -293,7 +329,7 @@ export const useAppState = () => {
 
         // Admin
         isAdmin, loginAsAdmin, logoutAdmin,
-        adminPasswordInput, setAdminPasswordInput,
+        authReady,
 
         // Orders
         orderFilter, setOrderFilter,

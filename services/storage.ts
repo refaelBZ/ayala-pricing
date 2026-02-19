@@ -1,5 +1,21 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, addDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  setDoc,
+  deleteDoc,
+  addDoc,
+} from "firebase/firestore";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  User,
+} from "firebase/auth";
 import { Product, Order } from '../types';
 
 // --- Firebase Configuration ---
@@ -16,7 +32,19 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+export const auth = getAuth(app);
+
 const PRODUCTS_COLLECTION = 'products';
+
+// --- Auth helpers ---
+
+export const loginAdmin = (email: string, password: string) =>
+  signInWithEmailAndPassword(auth, email, password);
+
+export const logoutAdmin = () => firebaseSignOut(auth);
+
+export { onAuthStateChanged };
+export type { User };
 
 // --- Default Data for Seeding ---
 const DEFAULT_PRODUCTS: Product[] = [
@@ -159,13 +187,11 @@ export const fetchProducts = async (): Promise<Product[]> => {
     return products;
   } catch (error) {
     console.error("Error fetching products:", error);
-    // Return empty array on error, app handles fallback visually
     return [];
   }
 };
 
 export const saveProductToFirestore = async (product: Product): Promise<void> => {
-  // Uses setDoc to overwrite if exists (update) or create if new
   await setDoc(doc(db, PRODUCTS_COLLECTION, product.id), product);
 };
 
@@ -173,31 +199,68 @@ export const deleteProductFromFirestore = async (productId: string): Promise<voi
   await deleteDoc(doc(db, PRODUCTS_COLLECTION, productId));
 };
 
+// Strips internalNotes from the main document — stored in the private sub-collection instead.
+const toPublicOrderDoc = (order: Order): Omit<Order, 'internalNotes'> => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { internalNotes: _notes, ...publicFields } = order;
+  return publicFields;
+};
+
 export const saveOrderToFirestore = async (order: Order): Promise<void> => {
   const ordersCollection = collection(db, 'orders');
 
-  // Ensure creation date is set
   if (!order.createdAt) {
     order.createdAt = new Date().toISOString();
   }
 
-  // If the order has an ID, use it (for updates), otherwise let Firestore generate one or use our generated one
+  const publicDoc = toPublicOrderDoc(order);
+
   if (order.id) {
-    await setDoc(doc(ordersCollection, order.id), order);
+    const orderRef = doc(ordersCollection, order.id);
+    // Write public fields to the main document
+    await setDoc(orderRef, publicDoc);
+    // Write internalNotes to the private sub-collection (admin-only by Firestore rules)
+    await setDoc(doc(orderRef, 'private', 'data'), { internalNotes: order.internalNotes ?? '' });
   } else {
-    await addDoc(ordersCollection, order);
+    const newRef = await addDoc(ordersCollection, publicDoc);
+    await setDoc(doc(newRef, 'private', 'data'), { internalNotes: order.internalNotes ?? '' });
   }
 };
 
+// Fetch all orders + their private notes (admin only — list permission required).
 export const fetchOrders = async (): Promise<Order[]> => {
   const querySnapshot = await getDocs(collection(db, 'orders'));
   const orders: Order[] = [];
-  querySnapshot.forEach((doc) => {
-    orders.push(doc.data() as Order);
-  });
+
+  await Promise.all(
+    querySnapshot.docs.map(async (orderDoc) => {
+      const order = orderDoc.data() as Order;
+      // Fetch the private sub-document for internalNotes
+      try {
+        const privateSnap = await getDoc(doc(db, 'orders', orderDoc.id, 'private', 'data'));
+        if (privateSnap.exists()) {
+          order.internalNotes = (privateSnap.data() as { internalNotes: string }).internalNotes;
+        }
+      } catch {
+        // If the private doc is missing, internalNotes stays undefined — not a fatal error
+      }
+      orders.push(order);
+    })
+  );
+
   return orders;
 };
 
+// Fetch a single order by ID (allowed for public users by Firestore rules).
+// internalNotes is NOT fetched here — public view never receives it.
+export const fetchOrderById = async (orderId: string): Promise<Order | null> => {
+  const snap = await getDoc(doc(db, 'orders', orderId));
+  if (!snap.exists()) return null;
+  return snap.data() as Order;
+};
+
 export const deleteOrderFromFirestore = async (orderId: string): Promise<void> => {
+  // Delete the private sub-document first, then the main document
+  await deleteDoc(doc(db, 'orders', orderId, 'private', 'data'));
   await deleteDoc(doc(db, 'orders', orderId));
 };
