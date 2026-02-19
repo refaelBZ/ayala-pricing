@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Settings, Check } from 'lucide-react';
 import { ExecutionStatus, PaymentStatus } from '../types';
 import { AppState } from '../hooks/useAppState';
@@ -17,6 +17,22 @@ export const OrderEditView: React.FC<Props> = ({
     selectedOrder, setSelectedOrder, orderForm, setOrderForm, navigate, showToast, setLoading, loadData
 }) => {
     if (!selectedOrder) return null;
+
+    // Pre-fill the form with the current order values each time the selected order changes
+    useEffect(() => {
+        setOrderForm({
+            customerName: selectedOrder.customer.name,
+            customerPhone: selectedOrder.customer.phone,
+            customerEmail: selectedOrder.customer.email || '',
+            customerSource: selectedOrder.customer.source || '',
+            eventDate: selectedOrder.eventDate,
+            eventTime: selectedOrder.delivery.time || '',
+            deliveryType: selectedOrder.delivery.type,
+            deliveryAddress: selectedOrder.delivery.address || '',
+            orderNotes: selectedOrder.internalNotes || '',
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedOrder.id]);
 
     const handleUpdateOrder = async () => {
         setLoading(true);
