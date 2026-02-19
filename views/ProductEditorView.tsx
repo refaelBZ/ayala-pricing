@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Settings, Plus, Trash2, List } from 'lucide-react';
+import { X, Settings, Plus, Trash2, List, Check } from 'lucide-react';
 import { Category, Option } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
@@ -68,7 +68,6 @@ export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingP
                     <X />
                 </button>
                 <h2 className="font-heading font-bold text-lg text-coffee-800">עריכת מוצר</h2>
-                <button onClick={saveProduct} className="text-rose-500 font-bold bg-rose-50 px-4 py-2 rounded-xl hover:bg-rose-100 transition-colors">שמור</button>
             </div>
 
             <div className="p-6 space-y-8 pb-32 overflow-y-auto">
@@ -304,6 +303,15 @@ export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingP
                         הוסף קטגוריה חדשה
                     </Button>
                 </section>
+            </div>
+            {/* Sticky Footer */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-rose-100 z-30 pb-safe">
+                <div className="max-w-2xl mx-auto">
+                    <Button fullWidth onClick={saveProduct} className="h-14 text-lg shadow-xl shadow-rose-400/20" disabled={!editingProduct.name}>
+                        <Check className="ml-2" />
+                        שמור שינויים
+                    </Button>
+                </div>
             </div>
         </div>
     );

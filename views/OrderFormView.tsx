@@ -221,10 +221,15 @@ export const OrderFormView: React.FC<Props> = ({
                     <TextArea placeholder="בקשות מיוחדות, אלרגיות, וכו'..." rows={3} className="bg-white" value={orderForm.orderNotes} onChange={e => setOrderForm({ ...orderForm, orderNotes: e.target.value })} />
                 </div>
 
-                <Button fullWidth onClick={handleSubmitOrder} className="h-14 text-lg mt-4 shadow-xl shadow-rose-400/20">
-                    <Check className="ml-2" />
-                    שמור הזמנה
-                </Button>
+                {/* Sticky Footer */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-rose-100 z-30 pb-safe">
+                    <div className="max-w-2xl mx-auto">
+                        <Button fullWidth onClick={handleSubmitOrder} className="h-14 text-lg shadow-xl shadow-rose-400/20">
+                            <Check className="ml-2" />
+                            שמור הזמנה
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
     );

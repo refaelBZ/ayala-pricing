@@ -1,129 +1,126 @@
-# Smart Pastry Pricing & Order System (Ayala Cakes)
+# 🍰 Smart Pastry Pricing Ecosystem (Ayala Cakes V2)
 
-A sophisticated, mobile-first CRM and KDS (Kitchen Display System) designed for professional pastry chefs. This application streamlines the complex pricing of custom cakes and manages orders with a luxury "French Patisserie" aesthetic.
+A state-of-the-art **Kitchen Operating System (KOS)** built for high-end pastry chefs.
+This platform bridges the gap between client-facing price quotes and back-of-house production management, wrapped in a luxury "French Patisserie" aesthetic.
 
-![Status](https://img.shields.io/badge/Status-Active-success)
+![Status](https://img.shields.io/badge/Status-Active_Development-success)
 ![Stack](https://img.shields.io/badge/Stack-React_19_|_Firebase_|_Tailwind-pink)
-
-## 🍰 Project Overview
-
-**Goal:** To automate the complex quoting process for custom cakes and manage the entire order lifecycle from inquiry to delivery.
-
-**Target Audience:**
-1.  **The Chef (Admin):** Manages products, updates prices, receives standardized orders, and tracks production status.
-2.  **The Customer:** Explores options, receives instant price quotes, and submits detailed orders.
-
-**Design Philosophy:**
-The UI follows a **"French Patisserie"** design language—clean, elegant, and using a palette of soft pastels (Rose, Cream, Coffee) to evoke a premium feel.
+![Design](https://img.shields.io/badge/Design-Glassmorphism_&_Soft_UI-purple)
 
 ---
 
-## 🛠️ Technology Stack & Architecture
+## 🌟 Comprehensive Features
 
-The codebase has been refactored into a scalable, feature-based React architecture.
+### 🛍️ Client Experience (Frontend)
+1.  **Smart Price Calculator:**
+    *   **Max Tier Algorithm:** Automatically calculates the final price based on the most expensive component (e.g., complex decor overrides base size price).
+    *   **Visual Menu:** Rich UI with card-based selections for sizes, flavors, and add-ons.
+    *   **Dynamic Inputs:** Intelligently asks for specific details (e.g., "Choose 2 flavors") *only* when relevant to the selected tier.
+2.  **Instant Quotes:**
+    *   Real-time price updates as options are toggled.
+    *   **WhatsApp Integration:** One-click generation of a formatted, professional quote message.
+3.  **Seamless Ordering:**
+    *   Converts the quote directly into a structured order.
+    *   Collects delivery/pickup details, event time, and manufacturing notes.
 
-### Core Stack
-*   **Frontend:** React 19 (Vite), TypeScript
-*   **Styling:** TailwindCSS (Custom configuration for colors/typography)
-*   **Icons:** Lucide React
-*   **Backend / Database:** Google Firebase (Firestore)
-*   **Deployment:** Vercel
+### 👨‍🍳 Chef Command Center (Admin Backend)
+1.  **Secure Access:**
+    *   **Global Header:** Persistent navigation bar with smart context (Admin tabs appear only after login).
+    *   **Biometric-style Login:** Fast, PIN-based access protected by environment variables.
+2.  **Orders Dashboard (KDS):**
+    *   **Kanban-style Filtering:** Filter by "This Week", "Unpaid", or "No Invoice".
+    *   **Quick Actions:** Delete, Edit, or Mark as Ready directly from the card view.
+3.  **Order Management Suite:**
+    *   **Digital Slip View:** A print-ready, read-only view for the kitchen.
+    *   **Full Editing Control:** Modify ANY detail of an existing order (Customer, Dates, Items).
+    *   **Status Workflow:** Track `Execution Status` (Pending → In Prep → Ready → Delivered) and `Payment Status`.
+4.  **Product Studio:**
+    *   **Live Editor:** Create and edit products without code.
+    *   **Tier Logic:** Define base prices (Tiers) and link them to add-ons.
+    *   **Input Config:** Graphically configure which inputs are required for each tier.
+
+---
+
+## 🎨 Design System & UI Architecture
+
+The application enforces a strict **"French Patisserie"** design language, implemented via a robust CSS Variable system.
+
+### 1. Global Color Palette (`index.css`)
+We use semantic CSS variables mapped to Tailwind configurations:
+
+*   **Primary (Rose):** `var(--color-rose-400)` (#C08081) - Used for primary actions and highlights.
+*   **Base (Cream):** `var(--color-cream)` (#FDFBF7) - The canvas background, evoking flour and vanilla.
+*   **Text (Coffee):** `var(--color-coffee-800)` (#4A4040) - High-contrast, warm text color replacing harsh black.
+*   **Surface (Glass):** `backdrop-blur-xl bg-white/70` - Used for headers and floating panels.
+
+### 2. UI Patterns
+*   **Sticky Action Bars:** Critical actions ("Save Order", "Add Product") are fixed to the bottom of the viewport, ensuring they are always accessible on mobile devices.
+*   **Glassmorphism:** Headers and modals use backdrop blurs to create depth.
+*   **Soft Shadows:** Custom `shadow-soft` utility to create a floating, airy feel.
+
+### 3. Reusable Components
+*   `Button.tsx`: A polymorphic button component supporting `primary`, `secondary`, and `ghost` variants with consistent pill-shape styling.
+*   `GlobalHeader.tsx`: A responsive, state-aware navigation bar.
+*   `LoadingOverlay.tsx`: A branded loading spinner with a rose animation.
+
+---
+
+## 🛠️ Technical Architecture
 
 ### File Structure
+The project follows a **Feature-First** architecture:
 ```
 src/
-├── hooks/              # Shared state logic (useAppState.ts)
-├── components/         # Reusable UI (GlobalHeader, Toast, LoadingOverlay)
-├── views/              # Full-screen Feature Components
-│   ├── HomeView.tsx
-│   ├── CalculatorView.tsx
-│   ├── OrderFormView.tsx
-│   ├── OrdersDashboardView.tsx (Kitchen Display)
-│   ├── OrderDetailsView.tsx    (Digital Slip)
-│   ├── OrderEditView.tsx       (Admin Edit)
-│   └── ... (Admin Views)
-├── services/           # Firebase Storage logic
-└── App.tsx             # Main Router
+├── hooks/
+│   └── useAppState.ts       # Centralized State Management (Login, Data Fetching)
+├── views/                   # Full-Screen Features
+│   ├── HomeView.tsx         # Landing Page / Calculator
+│   ├── AdminLoginView.tsx   # Security Gate
+│   ├── ProductEditorView.tsx# CMS for Products
+│   ├── OrdersDashboardView.tsx # Kitchen Display System
+│   └── OrderEditView.tsx    # Order Management
+├── services/
+│   └── storage.ts           # Firebase Firestore Abstraction Layer
+└── components/              # Shared UI (Buttons, Inputs, Headers)
 ```
 
----
-
-## 🧠 Core Pricing Logic
-
-This system uses a unique **"Max Tier Strategy"**.
-*   **The Algorithm:** `Final Price = MAX(Option_A_Price, Option_B_Price, ...)`
-*   **Example:** A customer selects a small size ($200) but chooses complex fondue art ($400). The final price jumps to **$400**, covering the complexity of the entire cake.
-
-### Dynamic Input Logic (Advanced)
-The system smartly aggregates "Required Details" from multiple sources:
-1.  **Tier Specs:** A base tier (e.g., "Classic") can mandate fields like "2 Fillings".
-2.  **Option Specs:** An add-on (e.g., "Extra Filling") can add another field.
-3.  **Result:** The Order Form presents a unified list of questions (e.g., 3 separate inputs for fillings).
+### Data Flow
+1.  **State:** `useAppState` loads products and orders from Firestore on mount.
+2.  **Persistence:** Admin session is persisted via `localStorage` to prevent frequent relogins.
+3.  **Creation:** New orders are stamped with exact `createdAt` ISO timestamps for auditing.
 
 ---
 
-## 🚀 Features & User Flow
+## 🌳 Git Strategy
 
-### 1. Smart Calculator (Client Side)
-*   **Visual Selection:** Users choose options via beautiful cards.
-*   **Live Updates:** Price updates instantly based on the "Max Tier" logic.
-*   **Copy to Clipboard:** Generates a formatted Whatsapp message with the quote.
+We maintain a disciplined version control workflow:
+*   **`master`**: Stable, production-ready code.
+*   **`qa`**: Pre-production testing environment.
+*   **`dev`**: Active development branch.
 
-### 2. Dynamic Order Form
-*   **Context Aware:** The form adapts based on calculator selections (e.g., asking for specific flavors if "3 Fillings" was chosen).
-
-### 3. Kitchen Dashboard (Admin Side)
-*   **Orders Dashboard:** A bird's-eye view of all orders using filter chips (This Week, Unpaid, No Invoice).
-*   **Digital Slip (Details View):** A read-only, paper-slip style view for packing and quick reference.
-*   **Full Editing Suite:** Admins can edit *any* detail of an order (Customer source, event time, items) and manage strict statuses via dropdowns.
-    *   **Execution Status:** Pending -> In Prep -> Ready -> Delivered.
-    *   **Payment Status:** Unpaid -> Deposit -> Paid Full.
+**Convention:** `feat/feature-name` → merge to `dev` → merge to `qa` → release to `master`.
 
 ---
 
-## 🌳 Git Workflow
+## 🚀 Setup & Installation
 
-We follow a strict branching strategy for development:
-
-1.  **`master`**: Production-ready code. Deployed to production.
-2.  **`qa`**: Staging/Testing branch. Stable features awaiting final approval.
-3.  **`dev`**: Main development branch. All new features are merged here first.
-
-**Workflow:** Feature Branch -> Merge to `dev` -> Merge to `qa` -> Merge to `master`.
-
----
-
-## 💻 Installation & Setup
-
-1.  **Clone the repository**
+1.  **Clone & Install**
     ```bash
     git clone https://github.com/your-username/ayala-pricing.git
-    cd ayala-pricing
-    ```
-
-2.  **Install dependencies**
-    ```bash
     npm install
     ```
 
-3.  **Environment Variables**
-    Create a `.env` or `.env.local` file:
+2.  **Environment Setup**
+    Create `.env` with Firebase credentials:
     ```env
     VITE_FIREBASE_API_KEY=...
-    ...
-    VITE_ADMIN_PASSWORD=208755959
+    VITE_ADMIN_PASSWORD=...
     ```
 
-4.  **Run Locally**
+3.  **Run Development Server**
     ```bash
     npm run dev
     ```
 
-5.  **Build**
-    ```bash
-    npm run build
-    ```
-
 ---
-
-Developed with ❤️ for **Ayala Cakes**.
+*Built with React 19, TailwindCSS, and Passion.*

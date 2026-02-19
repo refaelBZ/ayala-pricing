@@ -24,7 +24,7 @@ const App: React.FC = () => {
   return (
     <div className="bg-rose-50 min-h-screen" dir="rtl">
       {/* Global sticky header — always visible */}
-      <GlobalHeader view={view} isAdmin={state.isAdmin} setView={state.setView} />
+      <GlobalHeader view={view} isAdmin={state.isAdmin} setView={state.setView} logoutAdmin={state.logoutAdmin} />
 
       {/* Notifications */}
       <Toast message={toastMsg} show={!!toastMsg} />

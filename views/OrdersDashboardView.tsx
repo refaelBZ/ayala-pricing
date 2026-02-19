@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, LogOut, Clock3, Trash2, DollarSign, Receipt, Check } from 'lucide-react';
+import { Clock3, Trash2, DollarSign, Receipt, Check } from 'lucide-react';
 import { Order, ExecutionStatus, PaymentStatus } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { saveOrderToFirestore, deleteOrderFromFirestore } from '../services/storage';
@@ -73,14 +73,7 @@ export const OrdersDashboardView: React.FC<Props> = ({
                 {/* Title row */}
                 <div className="flex justify-between items-center px-4 pt-4 pb-2">
                     <h2 className="font-heading font-bold text-2xl text-coffee-800">ניהול הזמנות</h2>
-                    <div className="flex gap-2">
-                        <button onClick={() => setView('ADMIN_DASHBOARD')} className="p-2 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 transition-colors" title="ניהול מוצרים">
-                            <Settings size={20} />
-                        </button>
-                        <button onClick={() => { logoutAdmin(); setView('HOME'); }} className="p-2 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 transition-colors" title="יציאה">
-                            <LogOut size={20} />
-                        </button>
-                    </div>
+
                 </div>
 
                 {/* Filter chips row */}

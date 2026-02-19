@@ -175,6 +175,12 @@ export const deleteProductFromFirestore = async (productId: string): Promise<voi
 
 export const saveOrderToFirestore = async (order: Order): Promise<void> => {
   const ordersCollection = collection(db, 'orders');
+
+  // Ensure creation date is set
+  if (!order.createdAt) {
+    order.createdAt = new Date().toISOString();
+  }
+
   // If the order has an ID, use it (for updates), otherwise let Firestore generate one or use our generated one
   if (order.id) {
     await setDoc(doc(ordersCollection, order.id), order);

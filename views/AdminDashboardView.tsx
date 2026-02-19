@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, LogOut, Trash2, Edit2, Plus } from 'lucide-react';
+import { Trash2, Edit2, Plus } from 'lucide-react';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
 import { deleteProductFromFirestore, generateUUID } from '../services/storage';
@@ -14,22 +14,7 @@ export const AdminDashboardView: React.FC<Props> = ({ data, setView, setEditingP
                     <h1 className="text-2xl font-heading font-bold text-coffee-800">ניהול מוצרים</h1>
                     <p className="text-sm text-coffee-800/60">Ayala Cakes Admin</p>
                 </div>
-                <div className="flex gap-2">
-                    <button
-                        title="ניהול הזמנות"
-                        onClick={() => setView('ORDERS_DASHBOARD')}
-                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-rose-300 hover:text-rose-500 shadow-sm border border-rose-100"
-                    >
-                        <Settings size={20} />
-                    </button>
-                    <button
-                        title="יציאה"
-                        onClick={() => { logoutAdmin(); setView('HOME'); }}
-                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-rose-300 hover:text-rose-500 shadow-sm border border-rose-100"
-                    >
-                        <LogOut size={20} />
-                    </button>
-                </div>
+
             </header>
 
             <div className="space-y-4">

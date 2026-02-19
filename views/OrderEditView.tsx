@@ -1,8 +1,9 @@
 import React from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Check } from 'lucide-react';
 import { ExecutionStatus, PaymentStatus } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { Input, TextArea } from '../components/Input';
+import { Button } from '../components/Button';
 import { saveOrderToFirestore } from '../services/storage';
 
 type Props = Pick<AppState, 'selectedOrder' | 'setSelectedOrder' | 'orderForm' | 'setOrderForm' | 'setView' | 'showToast' | 'setLoading' | 'loadData'>;
@@ -54,7 +55,7 @@ export const OrderEditView: React.FC<Props> = ({
             <div className="sticky top-0 bg-white/90 backdrop-blur z-20 px-4 py-3 border-b border-rose-100 flex items-center justify-between shadow-sm">
                 <button onClick={() => setView('ORDER_DETAILS')} className="text-coffee-800 font-medium px-3 py-1 rounded-xl hover:bg-rose-50 transition-colors">ביטול</button>
                 <span className="font-heading font-bold text-lg text-coffee-800">עריכת הזמנה</span>
-                <button onClick={handleUpdateOrder} className="text-rose-500 font-bold px-3 py-1 bg-rose-50 rounded-xl hover:bg-rose-100 transition-colors">שמור</button>
+                <div className="w-12"></div> {/* Spacer for centering */}
             </div>
 
             <div className="p-6 space-y-6 max-w-2xl mx-auto w-full">
@@ -169,6 +170,16 @@ export const OrderEditView: React.FC<Props> = ({
                 <div className="space-y-4">
                     <h3 className="font-heading font-bold text-coffee-800 px-1 text-lg">הערות פנימיות</h3>
                     <TextArea rows={4} className="bg-white" value={orderForm.orderNotes} onChange={e => setOrderForm({ ...orderForm, orderNotes: e.target.value })} />
+                </div>
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-rose-100 z-30 pb-safe">
+                <div className="max-w-2xl mx-auto">
+                    <Button fullWidth onClick={handleUpdateOrder} className="h-14 text-lg shadow-xl shadow-rose-400/20">
+                        <Check className="ml-2" />
+                        שמור שינויים
+                    </Button>
                 </div>
             </div>
         </div>

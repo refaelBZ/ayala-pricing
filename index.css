@@ -1,0 +1,62 @@
+:root {
+  /* Brand Palette */
+  --color-cream: #FDFBF7;
+  --color-cream-dark: #F5F0E6;
+  
+  --color-rose-50: #FFF0F5;
+  --color-rose-100: #FFE4E9;
+  --color-rose-200: #FCC2D7;
+  --color-rose-300: #F0A0A8;
+  --color-rose-400: #C08081; /* Primary Action */
+  --color-rose-500: #A66061;
+
+  --color-coffee-800: #4A4040; /* Primary Text */
+  --color-coffee-900: #382E2E;
+
+  /* Semantic Tokens */
+  --bg-app: var(--color-rose-50);
+  --bg-surface: #FFFFFF;
+  --bg-input: #FFFFFF;
+  
+  --text-primary: var(--color-coffee-800);
+  --text-secondary: rgba(74, 64, 64, 0.6);
+  --text-accent: var(--color-rose-500);
+
+  --border-light: var(--color-rose-100);
+  --border-focus: var(--color-rose-300);
+
+  --radius-sm: 0.5rem;   /* 8px */
+  --radius-md: 0.75rem;  /* 12px */
+  --radius-lg: 1rem;     /* 16px */
+  --radius-xl: 1.5rem;   /* 24px */
+  --radius-full: 9999px;
+}
+
+body {
+  background: var(--bg-app); /* Fallback or base */
+  color: var(--text-primary);
+  font-family: 'Rubik', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Global Input Styles override */
+input, select, textarea {
+  border-radius: var(--radius-lg);
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--border-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-rose-100);
+}
+
+/* Scrollbar Utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
