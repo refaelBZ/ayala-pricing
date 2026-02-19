@@ -5,12 +5,13 @@ import { Button } from '../components/Button';
 import { StatusBadge } from '../components/StatusBadge';
 import { IconButton } from '../components/IconButton';
 
-type Props = Pick<AppState, 'selectedOrder' | 'navigate' | 'isPublicView' | 'showToast'>;
+type Props = Pick<AppState, 'selectedOrder' | 'navigate' | 'isPublicView' | 'isAdmin' | 'showToast'>;
 
 export const OrderDetailsView: React.FC<Props> = ({
     selectedOrder,
     navigate,
     isPublicView,
+    isAdmin,
     showToast
 }) => {
     if (!selectedOrder) {
@@ -198,7 +199,7 @@ export const OrderDetailsView: React.FC<Props> = ({
                 </div>
 
                 {/* Edit Action (Admin Only) */}
-                {!isPublicView && (
+                {isAdmin && (
                     <Button
                         variant="secondary"
                         onClick={() => navigate('ORDER_EDIT', { orderId: id, order: selectedOrder })}
