@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Settings, Plus, Trash2 } from 'lucide-react';
+import { X, Settings, Plus, Trash2, List } from 'lucide-react';
 import { Category, Option } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
@@ -84,18 +84,89 @@ export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingP
                     <div className="space-y-3 mt-4">
                         <label className="block text-sm font-medium text-coffee-800/80 mr-1">רמות בסיס (לדוגמה: בייסיק, פלוס, אקסטרה)</label>
                         {editingProduct.tiers.map((tier, idx) => (
-                            <div key={idx} className="flex gap-3">
-                                <Input placeholder={`שם רמה ${idx + 1}`} value={tier.name} onChange={e => updateTier(idx, 'name', e.target.value)} />
-                                <div className="w-1/3">
-                                    <Input type="number" placeholder="מחיר" value={tier.price} onChange={e => updateTier(idx, 'price', Number(e.target.value))} />
+                            <div key={idx} className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
+                                <div className="flex gap-3 mb-2">
+                                    <Input placeholder={`שם רמה ${idx + 1}`} value={tier.name} onChange={e => updateTier(idx, 'name', e.target.value)} className="bg-white" />
+                                    <div className="w-1/3">
+                                        <Input type="number" placeholder="מחיר" value={tier.price} onChange={e => updateTier(idx, 'price', Number(e.target.value))} className="bg-white" />
+                                    </div>
                                 </div>
+
+                                {/* Included Specs Management */}
+                                <details className="group">
+                                    <summary className="cursor-pointer text-xs font-medium text-rose-400 flex items-center gap-1 select-none mb-2">
+                                        <List size={14} />
+                                        {tier.includedSpecs?.length ? `ניהול שדות (${tier.includedSpecs.length})` : 'הוסף שדות מיוחדים (כמו טעמים/צבעים)'}
+                                    </summary>
+
+                                    <div className="pl-4 space-y-2 mt-2 border-r-2 border-rose-100 pr-2">
+                                        {tier.includedSpecs?.map((spec, sIdx) => (
+                                            <div key={sIdx} className="flex gap-2 items-end">
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] text-gray-500">תווית</label>
+                                                    <Input
+                                                        value={spec.label}
+                                                        onChange={e => {
+                                                            const newTiers = [...editingProduct.tiers];
+                                                            if (newTiers[idx].includedSpecs) {
+                                                                newTiers[idx].includedSpecs![sIdx].label = e.target.value;
+                                                                setEditingProduct({ ...editingProduct, tiers: newTiers });
+                                                            }
+                                                        }}
+                                                        className="h-8 text-xs bg-white"
+                                                        placeholder="לדוגמה: טעם"
+                                                    />
+                                                </div>
+                                                <div className="w-20">
+                                                    <label className="text-[10px] text-gray-500">כמות</label>
+                                                    <Input
+                                                        type="number"
+                                                        min={1}
+                                                        value={spec.count}
+                                                        onChange={e => {
+                                                            const newTiers = [...editingProduct.tiers];
+                                                            if (newTiers[idx].includedSpecs) {
+                                                                newTiers[idx].includedSpecs![sIdx].count = Number(e.target.value);
+                                                                setEditingProduct({ ...editingProduct, tiers: newTiers });
+                                                            }
+                                                        }}
+                                                        className="h-8 text-xs bg-white text-center"
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        const newTiers = [...editingProduct.tiers];
+                                                        newTiers[idx].includedSpecs = newTiers[idx].includedSpecs?.filter((_, i) => i !== sIdx);
+                                                        setEditingProduct({ ...editingProduct, tiers: newTiers });
+                                                    }}
+                                                    className="p-2 text-rose-300 hover:text-red-500"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            onClick={() => {
+                                                const newTiers = [...editingProduct.tiers];
+                                                if (!newTiers[idx].includedSpecs) newTiers[idx].includedSpecs = [];
+                                                newTiers[idx].includedSpecs!.push({ label: '', count: 1, type: 'text' });
+                                                setEditingProduct({ ...editingProduct, tiers: newTiers });
+                                            }}
+                                            className="text-xs text-rose-500 font-bold flex items-center gap-1 mt-2 hover:bg-rose-50 p-1 rounded-lg transition-colors"
+                                        >
+                                            <Plus size={12} />
+                                            הוסף שדה
+                                        </button>
+                                    </div>
+                                </details>
                             </div>
                         ))}
                     </div>
 
                     <div className="bg-rose-50 p-4 rounded-2xl text-sm text-coffee-800/80 leading-relaxed mt-4">
                         <strong>איך זה עובד?</strong><br />
-                        כל אפשרות בחירה שתגדירו למטה, תהיה מקושרת לאחת מרמות המחיר האלו (או מחיר ידני). המערכת תיקח תמיד את המחיר הגבוה ביותר מבין כל האפשרויות שנבחרו.
+                        כל האפשרויות הנבחרות ישפיעו על המחיר לפי רמת השיא (Max Tier). בנוסף, ניתן להגדיר שדות חובה לכל רמה (למשל: עוגת קומות חייבת בחירת 2 טעמים).
                     </div>
 
                     <TextArea label="תבנית הודעה" rows={3} value={editingProduct.messageTemplate} onChange={e => setEditingProduct({ ...editingProduct, messageTemplate: e.target.value })} className="mt-4" />

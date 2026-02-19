@@ -22,13 +22,13 @@ export const OrderFormView: React.FC<Props> = ({
         setLoading(true);
 
         const finalItems = pendingOrder.items.map(item => {
-            const selectedDetails = (item._inputConfigs || []).map(opt => ({
-                optionName: opt.name,
-                label: opt.formInputs?.label || 'פרטים',
-                values: dynamicDetails[opt.id] || []
+            const selectedDetails = (item._inputRequests || []).map(req => ({
+                sourceName: req.sourceName,
+                label: req.specs.label || 'פרטים',
+                values: dynamicDetails[req.id] || []
             }));
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { _inputConfigs, ...cleanItem } = item;
+            const { _inputRequests, ...cleanItem } = item;
             return { ...cleanItem, selectedDetails };
         });
 
@@ -105,30 +105,33 @@ export const OrderFormView: React.FC<Props> = ({
                 </div>
 
                 {/* 1.5 Dynamic Inputs */}
-                {pendingOrder.items.some(i => i._inputConfigs && i._inputConfigs.length > 0) && (
+                {pendingOrder.items.some(i => i._inputRequests && i._inputRequests.length > 0) && (
                     <div className="bg-white p-5 rounded-3xl shadow-sm border border-rose-100/50 space-y-4">
                         <h3 className="font-heading font-bold text-coffee-800 flex items-center gap-2">
                             <Edit2 size={18} className="text-rose-400" />
                             פרטים נוספים למוצר
                         </h3>
                         {pendingOrder.items.map((item) =>
-                            item._inputConfigs?.map((opt) => (
-                                <div key={opt.id} className="bg-rose-50/30 p-4 rounded-2xl border border-rose-100">
-                                    <h4 className="font-bold text-coffee-800 mb-3 text-sm">{opt.name}</h4>
+                            item._inputRequests?.map((req) => (
+                                <div key={req.id} className="bg-rose-50/30 p-4 rounded-2xl border border-rose-100">
+                                    <h4 className="font-bold text-coffee-800 mb-3 text-sm flex justify-between">
+                                        {req.sourceName}
+                                        <span className="text-xs font-normal text-rose-500 bg-white/50 px-2 rounded-full">{req.specs.label}</span>
+                                    </h4>
                                     <div className="space-y-3">
-                                        {Array.from({ length: opt.formInputs?.count || 1 }).map((_, i) => (
+                                        {Array.from({ length: req.specs.count || 1 }).map((_, i) => (
                                             <Input
                                                 key={i}
-                                                label={`${opt.formInputs?.label || 'פרט'} ${i + 1}`}
-                                                placeholder={`הכנס ${opt.formInputs?.label || 'ערך'}...`}
+                                                label={`${req.specs.label} ${i + 1}`}
+                                                placeholder={`הכנס ${req.specs.label}...`}
                                                 className="bg-white h-10 text-sm"
-                                                value={dynamicDetails[opt.id]?.[i] || ''}
+                                                value={dynamicDetails[req.id]?.[i] || ''}
                                                 onChange={(e) => {
                                                     setDynamicDetails(prev => {
-                                                        const current = prev[opt.id] || [];
+                                                        const current = prev[req.id] || [];
                                                         const updated = [...current];
                                                         updated[i] = e.target.value;
-                                                        return { ...prev, [opt.id]: updated };
+                                                        return { ...prev, [req.id]: updated };
                                                     });
                                                 }}
                                             />

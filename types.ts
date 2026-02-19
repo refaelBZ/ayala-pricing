@@ -1,12 +1,19 @@
 export interface ProductTier {
   name: string;
   price: number;
+  includedSpecs?: OptionFormInput[];
 }
 
 export interface OptionFormInput {
   count: number;
   label: string;
   type?: 'text' | 'color' | 'select';
+}
+
+export interface InputRequest {
+  id: string;
+  sourceName: string;
+  specs: OptionFormInput;
 }
 
 export interface Option {
@@ -38,7 +45,7 @@ export type ExecutionStatus = 'pending' | 'in_progress' | 'ready' | 'delivered';
 export type PaymentStatus = 'unpaid' | 'deposit' | 'paid_full';
 
 export interface SelectedDetail {
-  optionName: string;
+  sourceName: string; // Was optionName
   label: string;
   values: string[];
 }
@@ -50,7 +57,7 @@ export interface OrderItem {
   details: string; // The generated string description
   selectedDetails?: SelectedDetail[];
   // Internal use for UI flow to render inputs
-  _inputConfigs?: Option[];
+  _inputRequests?: InputRequest[];
 }
 
 export interface Customer {

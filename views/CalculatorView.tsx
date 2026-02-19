@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowLeft, Copy, ChevronRight, Check } from 'lucide-react';
-import { Option, OrderItem } from '../types';
+import { Option, OrderItem, InputRequest } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
 
@@ -133,14 +133,55 @@ export const CalculatorView: React.FC<Props> = ({
                         <Button
                             variant="primary"
                             onClick={() => {
-                                const optionsRequiringInput: Option[] = [];
+                                const inputRequests: InputRequest[] = [];
+                                let maxTierIdx = -1;
+                                let maxTierPrice = -1;
+
+                                // 1. Scan selections to find Max Tier (highest price linked tier)
                                 product.categories.forEach(cat => {
                                     const selection = selections[cat.id];
                                     if (!selection) return;
                                     const ids = Array.isArray(selection) ? selection : [selection];
                                     ids.forEach(id => {
                                         const opt = cat.options.find(o => o.id === id);
-                                        if (opt && opt.formInputs) optionsRequiringInput.push(opt);
+                                        if (opt && opt.linkTier >= 0 && opt.linkTier < product.tiers.length) {
+                                            const tierPrice = product.tiers[opt.linkTier].price;
+                                            if (tierPrice > maxTierPrice) {
+                                                maxTierPrice = tierPrice;
+                                                maxTierIdx = opt.linkTier;
+                                            }
+                                        }
+                                    });
+                                });
+
+                                // 2. Add Tier Specs if applicable
+                                if (maxTierIdx >= 0) {
+                                    const tier = product.tiers[maxTierIdx];
+                                    if (tier.includedSpecs) {
+                                        tier.includedSpecs.forEach((spec, idx) => {
+                                            inputRequests.push({
+                                                id: `tier-${maxTierIdx}-${idx}`,
+                                                sourceName: `רמת ${tier.name}`, // "Level Classic"
+                                                specs: spec
+                                            });
+                                        });
+                                    }
+                                }
+
+                                // 3. Add Option Specs
+                                product.categories.forEach(cat => {
+                                    const selection = selections[cat.id];
+                                    if (!selection) return;
+                                    const ids = Array.isArray(selection) ? selection : [selection];
+                                    ids.forEach(id => {
+                                        const opt = cat.options.find(o => o.id === id);
+                                        if (opt && opt.formInputs) {
+                                            inputRequests.push({
+                                                id: opt.id,
+                                                sourceName: opt.name,
+                                                specs: opt.formInputs
+                                            });
+                                        }
                                     });
                                 });
 
@@ -149,7 +190,7 @@ export const CalculatorView: React.FC<Props> = ({
                                     productName: product.name,
                                     price: total,
                                     details: detailsList.join('\n'),
-                                    _inputConfigs: optionsRequiringInput
+                                    _inputRequests: inputRequests // Was _inputConfigs
                                 }];
                                 setPendingOrder({ items, totalPrice: total });
                                 setDynamicDetails({});

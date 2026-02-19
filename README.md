@@ -54,6 +54,12 @@ This system uses a unique **"Max Tier Strategy"**.
 *   **The Algorithm:** `Final Price = MAX(Option_A_Price, Option_B_Price, ...)`
 *   **Example:** A customer selects a small size ($200) but chooses complex fondue art ($400). The final price jumps to **$400**, covering the complexity of the entire cake.
 
+### Dynamic Input Logic (Advanced)
+The system smartly aggregates "Required Details" from multiple sources:
+1.  **Tier Specs:** A base tier (e.g., "Classic") can mandate fields like "2 Fillings".
+2.  **Option Specs:** An add-on (e.g., "Extra Filling") can add another field.
+3.  **Result:** The Order Form presents a unified list of questions (e.g., 3 separate inputs for fillings).
+
 ---
 
 ## 🚀 Features & User Flow
