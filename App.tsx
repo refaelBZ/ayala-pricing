@@ -22,9 +22,11 @@ const App: React.FC = () => {
   const { view, toastMsg, loading } = state;
 
   return (
-    <div className="bg-rose-50 min-h-screen" dir="rtl">
-      {/* Global sticky header — always visible */}
-      <GlobalHeader view={view} isAdmin={state.isAdmin} setView={state.setView} logoutAdmin={state.logoutAdmin} />
+    <div className="min-h-screen" dir="rtl">
+      {/* Global sticky header — always visible (except in public view) */}
+      {!state.isPublicView && (
+        <GlobalHeader view={view} isAdmin={state.isAdmin} setView={state.setView} logoutAdmin={state.logoutAdmin} />
+      )}
 
       {/* Notifications */}
       <Toast message={toastMsg} show={!!toastMsg} />
@@ -35,7 +37,7 @@ const App: React.FC = () => {
       {view === 'CALCULATOR' && <CalculatorView {...state} />}
       {view === 'ORDER_FORM' && <OrderFormView {...state} />}
       {view === 'ORDERS_DASHBOARD' && <OrdersDashboardView {...state} />}
-      {view === 'ORDER_DETAILS' && <OrderDetailsView {...state} />}
+      {view === 'ORDER_DETAILS' && <OrderDetailsView {...state} isPublicView={state.isPublicView} />}
       {view === 'ORDER_EDIT' && <OrderEditView {...state} />}
       {view === 'ADMIN_LOGIN' && <AdminLoginView {...state} />}
       {view === 'ADMIN_DASHBOARD' && <AdminDashboardView {...state} />}

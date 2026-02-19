@@ -1,15 +1,20 @@
 import React from 'react';
-import { ArrowLeft, Sparkles, Edit2, Calendar, User, MapPin, FileText, Check, ChevronRight } from 'lucide-react';
+import { Sparkles, Edit2, Calendar, User, MapPin, FileText, Check } from 'lucide-react';
 import { Order } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
-import { Input, TextArea } from '../components/Input';
+import { Input, TextArea, BaseSelect } from '../components/Input';
+import { SubHeader } from '../components/SubHeader';
+import { StickyFooter } from '../components/StickyFooter';
+import { SectionHeader } from '../components/SectionHeader';
+import { BaseCard } from '../components/BaseCard';
+import { ToggleGroup } from '../components/ToggleGroup';
 import { saveOrderToFirestore, generateUUID } from '../services/storage';
 
-type Props = Pick<AppState, 'pendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'setView' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm'>;
+type Props = Pick<AppState, 'pendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'setView' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm' | 'setSelectedOrder'>;
 
 export const OrderFormView: React.FC<Props> = ({
-    pendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, setView, showToast, setLoading, loadData, resetOrderForm
+    pendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, setView, showToast, setLoading, loadData, resetOrderForm, setSelectedOrder
 }) => {
     if (!pendingOrder) return null;
 
@@ -60,7 +65,10 @@ export const OrderFormView: React.FC<Props> = ({
             showToast('הזמנה נוצרה בהצלחה!');
             resetOrderForm();
             await loadData();
-            setView('HOME');
+
+            // Navigate to the newly created order
+            setSelectedOrder(newOrder);
+            setView('ORDER_DETAILS');
         } catch (e) {
             console.error(e);
             showToast('שגיאה בשמירת ההזמנה');
@@ -70,53 +78,48 @@ export const OrderFormView: React.FC<Props> = ({
     };
 
     return (
-        <div className="min-h-screen bg-rose-50/50 flex flex-col pb-32">
+        <div className="min-h-screen flex flex-col pb-32">
             {/* Sub-header */}
-            <div className="sticky top-0 bg-white/90 backdrop-blur z-20 px-4 py-4 border-b border-rose-100 flex items-center gap-4 shadow-sm">
-                <button onClick={() => setView('CALCULATOR')} className="p-2 -mr-2 text-coffee-800/60 hover:text-coffee-800 hover:bg-rose-50 rounded-full transition-colors">
-                    <ArrowLeft />
-                </button>
-                <h2 className="font-heading font-bold text-lg text-coffee-800">סיכום והזמנה</h2>
-            </div>
+            <SubHeader title="סיכום והזמנה" onBack={() => setView('CALCULATOR')} />
 
             <div className="p-6 space-y-6 max-w-2xl mx-auto w-full">
 
                 {/* 1. Order Summary */}
-                <div className="bg-white p-5 rounded-3xl shadow-sm border border-rose-100/50">
-                    <h3 className="font-heading font-bold text-coffee-800 mb-3 flex items-center gap-2">
-                        <Sparkles size={18} className="text-rose-400" />
+                <BaseCard variant="outlined">
+                    <SectionHeader icon={<Sparkles size={18} />}>
                         סיכום הזמנה
-                    </h3>
-                    {pendingOrder.items.map((item, idx) => (
-                        <div key={idx} className="bg-rose-50/50 p-4 rounded-2xl text-sm space-y-2">
-                            <div className="flex justify-between font-bold text-coffee-800">
-                                <span>{item.productName}</span>
-                                <span>₪{item.price}</span>
+                    </SectionHeader>
+                    <div className="mt-3">
+                        {pendingOrder.items.map((item, idx) => (
+                            <div key={idx} className="bg-accent-ghost/50 p-4 rounded-2xl text-body-sm space-y-2">
+                                <div className="flex justify-between font-bold text-primary">
+                                    <span>{item.productName}</span>
+                                    <span>₪{item.price}</span>
+                                </div>
+                                <div className="text-secondary whitespace-pre-wrap leading-relaxed pl-4 border-r-2 border-default text-caption">
+                                    {item.details}
+                                </div>
                             </div>
-                            <div className="text-coffee-800/70 whitespace-pre-wrap leading-relaxed pl-4 border-r-2 border-rose-200 text-xs">
-                                {item.details}
-                            </div>
-                        </div>
-                    ))}
-                    <div className="mt-4 pt-4 border-t border-rose-50 flex justify-between items-center px-2">
-                        <span className="font-medium text-coffee-800">סה"כ לתשלום</span>
-                        <span className="font-heading font-bold text-xl text-coffee-800">₪{pendingOrder.totalPrice}</span>
+                        ))}
                     </div>
-                </div>
+                    <div className="mt-4 pt-4 border-t border-subtle flex justify-between items-center px-2">
+                        <span className="font-medium text-primary">סה"כ לתשלום</span>
+                        <span className="font-heading font-bold text-xl text-primary">₪{pendingOrder.totalPrice}</span>
+                    </div>
+                </BaseCard>
 
                 {/* 1.5 Dynamic Inputs */}
                 {pendingOrder.items.some(i => i._inputRequests && i._inputRequests.length > 0) && (
-                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-rose-100/50 space-y-4">
-                        <h3 className="font-heading font-bold text-coffee-800 flex items-center gap-2">
-                            <Edit2 size={18} className="text-rose-400" />
+                    <BaseCard variant="outlined" className="space-y-4">
+                        <SectionHeader icon={<Edit2 size={18} />}>
                             פרטים נוספים למוצר
-                        </h3>
+                        </SectionHeader>
                         {pendingOrder.items.map((item) =>
                             item._inputRequests?.map((req) => (
-                                <div key={req.id} className="bg-rose-50/30 p-4 rounded-2xl border border-rose-100">
-                                    <h4 className="font-bold text-coffee-800 mb-3 text-sm flex justify-between">
+                                <div key={req.id} className="bg-accent-ghost/30 p-4 rounded-2xl border border-light">
+                                    <h4 className="font-bold text-primary mb-3 text-body-sm flex justify-between">
                                         {req.sourceName}
-                                        <span className="text-xs font-normal text-rose-500 bg-white/50 px-2 rounded-full">{req.specs.label}</span>
+                                        <span className="text-caption font-normal text-accent bg-white/50 px-2 rounded-full">{req.specs.label}</span>
                                     </h4>
                                     <div className="space-y-3">
                                         {Array.from({ length: req.specs.count || 1 }).map((_, i) => (
@@ -124,7 +127,7 @@ export const OrderFormView: React.FC<Props> = ({
                                                 key={i}
                                                 label={`${req.specs.label} ${i + 1}`}
                                                 placeholder={`הכנס ${req.specs.label}...`}
-                                                className="bg-white h-10 text-sm"
+                                                className="bg-white h-10 text-body-sm"
                                                 value={dynamicDetails[req.id]?.[i] || ''}
                                                 onChange={(e) => {
                                                     setDynamicDetails(prev => {
@@ -140,15 +143,14 @@ export const OrderFormView: React.FC<Props> = ({
                                 </div>
                             ))
                         )}
-                    </div>
+                    </BaseCard>
                 )}
 
                 {/* 2. Event Details */}
                 <div className="space-y-4">
-                    <h3 className="font-heading font-bold text-coffee-800 px-1 text-lg flex items-center gap-2">
-                        <Calendar size={20} className="text-rose-400" />
+                    <SectionHeader icon={<Calendar size={20} />} size="lg">
                         מתי האירוע?
-                    </h3>
+                    </SectionHeader>
                     <div className="flex gap-3">
                         <div className="flex-1">
                             <Input type="date" label="תאריך *" required className="bg-white" value={orderForm.eventDate} onChange={e => setOrderForm({ ...orderForm, eventDate: e.target.value })} />
@@ -161,52 +163,38 @@ export const OrderFormView: React.FC<Props> = ({
 
                 {/* 3. Customer Info */}
                 <div className="space-y-4">
-                    <h3 className="font-heading font-bold text-coffee-800 px-1 text-lg flex items-center gap-2">
-                        <User size={20} className="text-rose-400" />
+                    <SectionHeader icon={<User size={20} />} size="lg">
                         פרטים אישיים
-                    </h3>
+                    </SectionHeader>
                     <Input placeholder="שם מלא *" value={orderForm.customerName} onChange={e => setOrderForm({ ...orderForm, customerName: e.target.value })} className="bg-white" />
                     <Input type="tel" placeholder="טלפון *" value={orderForm.customerPhone} onChange={e => setOrderForm({ ...orderForm, customerPhone: e.target.value })} className="bg-white" />
                     <Input type="email" placeholder="אימייל (אופציונלי)" value={orderForm.customerEmail} onChange={e => setOrderForm({ ...orderForm, customerEmail: e.target.value })} className="bg-white" />
-                    <div className="relative">
-                        <select
-                            className="w-full h-12 px-5 rounded-2xl border border-rose-100 bg-white focus:border-rose-300 focus:outline-none appearance-none text-coffee-800/80"
-                            value={orderForm.customerSource}
-                            onChange={e => setOrderForm({ ...orderForm, customerSource: e.target.value })}
-                        >
-                            <option value="" disabled>איך הגעת אלינו?</option>
-                            <option value="instagram">אינסטגרם</option>
-                            <option value="facebook">פייסבוק</option>
-                            <option value="whatsapp">וואטסאפ</option>
-                            <option value="friend">חבר/ה</option>
-                            <option value="other">אחר</option>
-                        </select>
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-coffee-800/40">
-                            <ChevronRight className="rotate-90" size={16} />
-                        </div>
-                    </div>
+                    <BaseSelect
+                        value={orderForm.customerSource}
+                        onChange={e => setOrderForm({ ...orderForm, customerSource: e.target.value })}
+                    >
+                        <option value="" disabled>איך הגעת אלינו?</option>
+                        <option value="instagram">אינסטגרם</option>
+                        <option value="facebook">פייסבוק</option>
+                        <option value="whatsapp">וואטסאפ</option>
+                        <option value="friend">חבר/ה</option>
+                        <option value="other">אחר</option>
+                    </BaseSelect>
                 </div>
 
                 {/* 4. Delivery */}
                 <div className="space-y-4">
-                    <h3 className="font-heading font-bold text-coffee-800 px-1 text-lg flex items-center gap-2">
-                        <MapPin size={20} className="text-rose-400" />
+                    <SectionHeader icon={<MapPin size={20} />} size="lg">
                         משלוח / איסוף
-                    </h3>
-                    <div className="flex gap-4 p-1 bg-white rounded-2xl shadow-sm border border-rose-50">
-                        <button
-                            onClick={() => setOrderForm({ ...orderForm, deliveryType: 'pickup' })}
-                            className={`flex-1 py-3 rounded-xl font-medium transition-all ${orderForm.deliveryType === 'pickup' ? 'bg-rose-400 text-white shadow-md shadow-rose-200' : 'text-coffee-800/60 hover:bg-rose-50'}`}
-                        >
-                            איסוף עצמי
-                        </button>
-                        <button
-                            onClick={() => setOrderForm({ ...orderForm, deliveryType: 'delivery' })}
-                            className={`flex-1 py-3 rounded-xl font-medium transition-all ${orderForm.deliveryType === 'delivery' ? 'bg-rose-400 text-white shadow-md shadow-rose-200' : 'text-coffee-800/60 hover:bg-rose-50'}`}
-                        >
-                            משלוח
-                        </button>
-                    </div>
+                    </SectionHeader>
+                    <ToggleGroup
+                        options={[
+                            { value: 'pickup', label: 'איסוף עצמי' },
+                            { value: 'delivery', label: 'משלוח' },
+                        ]}
+                        value={orderForm.deliveryType}
+                        onChange={(v) => setOrderForm({ ...orderForm, deliveryType: v as 'pickup' | 'delivery' })}
+                    />
                     {orderForm.deliveryType === 'delivery' && (
                         <Input placeholder="כתובת למשלוח (עיר, רחוב ומספר בית)" value={orderForm.deliveryAddress} onChange={e => setOrderForm({ ...orderForm, deliveryAddress: e.target.value })} className="bg-white" />
                     )}
@@ -214,22 +202,19 @@ export const OrderFormView: React.FC<Props> = ({
 
                 {/* 5. Notes */}
                 <div className="space-y-4">
-                    <h3 className="font-heading font-bold text-coffee-800 px-1 text-lg flex items-center gap-2">
-                        <FileText size={20} className="text-rose-400" />
+                    <SectionHeader icon={<FileText size={20} />} size="lg">
                         הערות נוספות
-                    </h3>
+                    </SectionHeader>
                     <TextArea placeholder="בקשות מיוחדות, אלרגיות, וכו'..." rows={3} className="bg-white" value={orderForm.orderNotes} onChange={e => setOrderForm({ ...orderForm, orderNotes: e.target.value })} />
                 </div>
 
                 {/* Sticky Footer */}
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-rose-100 z-30 pb-safe">
-                    <div className="max-w-2xl mx-auto">
-                        <Button fullWidth onClick={handleSubmitOrder} className="h-14 text-lg shadow-xl shadow-rose-400/20">
-                            <Check className="ml-2" />
-                            שמור הזמנה
-                        </Button>
-                    </div>
-                </div>
+                <StickyFooter>
+                    <Button fullWidth size="lg" onClick={handleSubmitOrder}>
+                        <Check className="ml-2" />
+                        שמור הזמנה
+                    </Button>
+                </StickyFooter>
             </div>
         </div>
     );

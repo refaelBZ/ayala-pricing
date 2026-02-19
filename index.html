@@ -1,68 +1,111 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Pastry Calculator V2</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&family=Varela+Round&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              cream: 'var(--color-cream)',
-              'cream-dark': 'var(--color-cream-dark)',
-              rose: {
-                50: 'var(--color-rose-50)',
-                100: 'var(--color-rose-100)',
-                200: 'var(--color-rose-200)', // Soft highlight
-                300: 'var(--color-rose-300)',
-                400: 'var(--color-rose-400)', // Dusty Rose (Primary Action)
-                500: 'var(--color-rose-500)',
-              },
-              coffee: {
-                800: 'var(--color-coffee-800)', // Dark Warm Grey
-                900: 'var(--color-coffee-900)',
-              },
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pastry Calculator V2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&family=Varela+Round&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            /* ─── Brand Palette ─── */
+            cream: 'var(--color-cream)',
+            'cream-dark': 'var(--color-cream-dark)',
+            rose: {
+              50: 'var(--color-rose-50)',
+              100: 'var(--color-rose-100)',
+              200: 'var(--color-rose-200)',
+              300: 'var(--color-rose-300)',
+              400: 'var(--color-rose-400)',
+              500: 'var(--color-rose-500)',
+              600: 'var(--color-rose-600)',
             },
-            fontFamily: {
-              sans: ['Rubik', 'sans-serif'],
-              heading: ['Varela Round', 'sans-serif'],
+            coffee: {
+              800: 'var(--color-coffee-800)',
+              900: 'var(--color-coffee-900)',
             },
-            boxShadow: {
-              'soft': '0 10px 40px -10px rgba(192, 128, 129, 0.15)',
-              'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-            }
-          }
+
+            /* ─── Semantic Colors ─── */
+            primary: {
+              DEFAULT: 'var(--color-primary)',
+              hover: 'var(--color-primary-hover)',
+              active: 'var(--color-primary-active)',
+              disabled: 'var(--color-primary-disabled)',
+              ghost: 'var(--color-primary-ghost)',
+            },
+            accent: {
+              ghost: 'var(--bg-accent-ghost)',
+              surface: 'var(--bg-accent-surface)',
+              soft: 'var(--text-accent-soft)',
+              muted: 'var(--text-accent-muted)',
+            },
+            chip: {
+              active: 'var(--bg-chip-active)',
+              'active-text': 'var(--text-chip-active)',
+            },
+            success: {
+              bg: 'var(--color-success-bg)',
+              text: 'var(--color-success-text)',
+              border: 'var(--color-success-border)',
+            },
+            warning: {
+              bg: 'var(--color-warning-bg)',
+              text: 'var(--color-warning-text)',
+              border: 'var(--color-warning-border)',
+            },
+            danger: {
+              bg: 'var(--color-danger-bg)',
+              text: 'var(--color-danger-text)',
+              border: 'var(--color-danger-border)',
+            },
+            info: {
+              bg: 'var(--color-info-bg)',
+              text: 'var(--color-info-text)',
+              border: 'var(--color-info-border)',
+            },
+            neutral: {
+              bg: 'var(--color-neutral-bg)',
+              text: 'var(--color-neutral-text)',
+              border: 'var(--color-neutral-border)',
+            },
+          },
+          fontFamily: {
+            sans: ['Rubik', 'sans-serif'],
+            heading: ['Varela Round', 'sans-serif'],
+          },
+          boxShadow: {
+            'soft': 'var(--shadow-soft)',
+            'glass': 'var(--shadow-glass)',
+            'card': 'var(--shadow-card)',
+            'primary-glow': 'var(--shadow-primary-glow)',
+          },
+          borderRadius: {
+            'sm-token': 'var(--radius-sm)',
+            'md-token': 'var(--radius-md)',
+            'lg-token': 'var(--radius-lg)',
+            'xl-token': 'var(--radius-xl)',
+            '2xl-token': 'var(--radius-2xl)',
+          },
+          borderColor: {
+            subtle: 'var(--border-subtle)',
+            light: 'var(--border-light)',
+            DEFAULT: 'var(--border-default)',
+            focus: 'var(--border-focus)',
+          },
+          transitionDuration: {
+            'fast': '150ms',
+            'base': '200ms',
+            'slow': '300ms',
+          },
         }
       }
-    </script>
-    <style>
-      body {
-        background: linear-gradient(135deg, #FFF0F5 0%, #FDFBF7 100%);
-        color: #4A4040;
-        -webkit-tap-highlight-color: transparent;
-        min-height: 100vh;
-      }
-      /* Hide scrollbar for clean UI */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      .glass-panel {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-      }
-      input, select, textarea {
-        font-size: 16px !important; /* Prevent iOS zoom */
-      }
-    </style>
+    }
+  </script>
   <script type="importmap">
 {
   "imports": {
@@ -77,10 +120,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

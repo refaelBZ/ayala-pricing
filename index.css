@@ -1,62 +1,252 @@
+/* ═══════════════════════════════════════════════════════════
+   AYALA CAKES — Design Token System
+   Single Source of Truth for all visual tokens.
+   ═══════════════════════════════════════════════════════════ */
+
 :root {
-  /* Brand Palette */
-  --color-cream: #FDFBF7;
-  --color-cream-dark: #F5F0E6;
-  
-  --color-rose-50: #FFF0F5;
-  --color-rose-100: #FFE4E9;
-  --color-rose-200: #FCC2D7;
-  --color-rose-300: #F0A0A8;
-  --color-rose-400: #C08081; /* Primary Action */
-  --color-rose-500: #A66061;
+    /* ─── Brand Palette (Raw Values) ─── */
+    --color-cream: #FDFBF7;
+    --color-cream-dark: #F5F0E6;
 
-  --color-coffee-800: #4A4040; /* Primary Text */
-  --color-coffee-900: #382E2E;
+    --color-rose-50: #FFF0F5;
+    --color-rose-100: #FFE4E9;
+    --color-rose-200: #FCC2D7;
+    --color-rose-300: #F0A0A8;
+    --color-rose-400: #C08081;
+    /* Primary Action */
+    --color-rose-500: #A66061;
+    --color-rose-600: #8C4A4B;
 
-  /* Semantic Tokens */
-  --bg-app: var(--color-rose-50);
-  --bg-surface: #FFFFFF;
-  --bg-input: #FFFFFF;
-  
-  --text-primary: var(--color-coffee-800);
-  --text-secondary: rgba(74, 64, 64, 0.6);
-  --text-accent: var(--color-rose-500);
+    --color-coffee-800: #4A4040;
+    /* Primary Text */
+    --color-coffee-900: #382E2E;
 
-  --border-light: var(--color-rose-100);
-  --border-focus: var(--color-rose-300);
+    /* ─── Semantic: Backgrounds ─── */
+    --bg-app: var(--color-rose-50);
+    --bg-surface: #FFFFFF;
+    --bg-surface-alt: var(--color-cream);
+    --bg-input: #FFFFFF;
+    --bg-muted: var(--color-rose-50);
 
-  --radius-sm: 0.5rem;   /* 8px */
-  --radius-md: 0.75rem;  /* 12px */
-  --radius-lg: 1rem;     /* 16px */
-  --radius-xl: 1.5rem;   /* 24px */
-  --radius-full: 9999px;
+    /* ─── Semantic: Text ─── */
+    --text-primary: var(--color-coffee-800);
+    --text-secondary: rgba(74, 64, 64, 0.6);
+    --text-muted: rgba(74, 64, 64, 0.4);
+    --text-accent: var(--color-rose-500);
+    --text-accent-soft: var(--color-rose-400);
+    --text-accent-muted: var(--color-rose-300);
+    --text-on-primary: #FFFFFF;
+
+    /* ─── Semantic: Interactive (Primary) ─── */
+    --color-primary: var(--color-rose-400);
+    --color-primary-hover: var(--color-rose-500);
+    --color-primary-active: var(--color-rose-600);
+    --color-primary-disabled: var(--color-rose-200);
+    --color-primary-ghost: var(--color-rose-50);
+
+    /* ─── Semantic: Surfaces & Accents ─── */
+    --bg-accent-ghost: var(--color-rose-50);
+    --bg-accent-surface: var(--color-cream);
+    --bg-chip-active: var(--color-coffee-800);
+    --text-chip-active: #FFFFFF;
+
+    /* ─── Semantic: Status Colors ─── */
+    --color-success-bg: #ECFDF5;
+    --color-success-text: #059669;
+    --color-success-border: #A7F3D0;
+
+    --color-warning-bg: #FFFBEB;
+    --color-warning-text: #B45309;
+    --color-warning-border: #FDE68A;
+
+    --color-danger-bg: #FEF2F2;
+    --color-danger-text: #DC2626;
+    --color-danger-border: #FECACA;
+
+    --color-info-bg: #EFF6FF;
+    --color-info-text: #2563EB;
+    --color-info-border: #BFDBFE;
+
+    --color-neutral-bg: #F9FAFB;
+    --color-neutral-text: #6B7280;
+    --color-neutral-border: #E5E7EB;
+
+    /* ─── Borders ─── */
+    --border-subtle: var(--color-rose-50);
+    --border-light: var(--color-rose-100);
+    --border-default: var(--color-rose-200);
+    --border-focus: var(--color-rose-300);
+
+    /* ─── Border Radii ─── */
+    --radius-sm: 0.5rem;
+    /* 8px */
+    --radius-md: 0.75rem;
+    /* 12px */
+    --radius-lg: 1rem;
+    /* 16px */
+    --radius-xl: 1.5rem;
+    /* 24px */
+    --radius-2xl: 2rem;
+    /* 32px */
+    --radius-full: 9999px;
+
+    /* ─── Spacing Scale ─── */
+    --space-1: 0.25rem;
+    /* 4px */
+    --space-2: 0.5rem;
+    /* 8px */
+    --space-3: 0.75rem;
+    /* 12px */
+    --space-4: 1rem;
+    /* 16px */
+    --space-5: 1.25rem;
+    /* 20px */
+    --space-6: 1.5rem;
+    /* 24px */
+    --space-8: 2rem;
+    /* 32px */
+    --space-10: 2.5rem;
+    /* 40px */
+    --space-12: 3rem;
+    /* 48px */
+
+    /* ─── Shadows ─── */
+    --shadow-soft: 0 10px 40px -10px rgba(192, 128, 129, 0.15);
+    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --shadow-card: 0 4px 24px -4px rgba(192, 128, 129, 0.12);
+    --shadow-primary-glow: 0 10px 25px -5px rgba(192, 128, 129, 0.3);
+
+    /* ─── Transitions ─── */
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+    --transition-slow: 300ms ease;
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   Typography Scale
+   ═══════════════════════════════════════════════════════════ */
+
+.text-heading-1 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: 700;
+    font-size: 1.875rem;
+    /* 30px */
+    line-height: 1.2;
+    color: var(--text-primary);
+}
+
+.text-heading-2 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    /* 24px */
+    line-height: 1.3;
+    color: var(--text-primary);
+}
+
+.text-heading-3 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: 700;
+    font-size: 1.125rem;
+    /* 18px */
+    line-height: 1.4;
+    color: var(--text-primary);
+}
+
+.text-body-lg {
+    font-size: 1.125rem;
+    line-height: 1.6;
+}
+
+.text-body-base {
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.text-body-sm {
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.text-caption {
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.text-micro {
+    font-size: 0.625rem;
+    line-height: 1.3;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   Base Styles
+   ═══════════════════════════════════════════════════════════ */
 
 body {
-  background: var(--bg-app); /* Fallback or base */
-  color: var(--text-primary);
-  font-family: 'Rubik', sans-serif;
-  -webkit-font-smoothing: antialiased;
+    background: linear-gradient(135deg, var(--bg-app) 0%, var(--color-cream) 100%);
+    color: var(--text-primary);
+    font-family: 'Rubik', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 100vh;
 }
 
-/* Global Input Styles override */
-input, select, textarea {
-  border-radius: var(--radius-lg);
-  border-color: var(--border-light);
-  color: var(--text-primary);
+
+/* ═══════════════════════════════════════════════════════════
+   Global Form Element Styles
+   ═══════════════════════════════════════════════════════════ */
+
+input,
+select,
+textarea {
+    border-radius: var(--radius-lg);
+    border-color: var(--border-light);
+    color: var(--text-primary);
+    font-size: 16px !important;
+    /* Prevent iOS zoom */
 }
 
-input:focus, select:focus, textarea:focus {
-  border-color: var(--border-focus);
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-rose-100);
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--border-focus);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-rose-100);
 }
 
-/* Scrollbar Utility */
+
+/* ═══════════════════════════════════════════════════════════
+   Glass Panel Utility
+   ═══════════════════════════════════════════════════════════ */
+
+.glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   Scrollbar Utilities
+   ═══════════════════════════════════════════════════════════ */
+
 .hide-scrollbar::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
+
 .hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }

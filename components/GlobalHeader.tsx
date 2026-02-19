@@ -1,12 +1,13 @@
 import React from 'react';
 import { Sparkles, Lock, ChefHat, LogOut, LayoutDashboard } from 'lucide-react';
 import { ViewState } from '../types';
+import { IconButton } from './IconButton';
 
 interface GlobalHeaderProps {
     view: ViewState;
     isAdmin: boolean;
     setView: (v: ViewState) => void;
-    logoutAdmin?: () => void; // Add this prop
+    logoutAdmin?: () => void;
 }
 
 export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setView, logoutAdmin }) => {
@@ -14,8 +15,11 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
     const isOrdersActive = view === 'ORDERS_DASHBOARD' || view === 'ORDER_DETAILS' || view === 'ORDER_EDIT';
     const isDashboardActive = view === 'ADMIN_DASHBOARD' || view === 'PRODUCT_EDITOR';
 
+    const activeTabClass = 'bg-primary text-on-primary shadow-lg shadow-primary-glow';
+    const inactiveTabClass = 'text-secondary hover:text-primary hover:bg-accent-ghost';
+
     return (
-        <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-white/70 border-b border-white/20 shadow-sm transition-all duration-300">
+        <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-white/70 border-b border-white/20 shadow-sm transition-all duration-slow">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     {/* Brand */}
@@ -23,10 +27,10 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
                         onClick={() => setView('HOME')}
                         className="flex items-center gap-2 group transition-opacity hover:opacity-80"
                     >
-                        <div className="w-9 h-9 bg-gradient-to-br from-rose-100 to-rose-50 rounded-xl flex items-center justify-center text-rose-500 shadow-sm group-hover:shadow-rose-200 transition-all">
+                        <div className="w-9 h-9 bg-gradient-to-br from-accent-ghost to-accent-ghost/50 rounded-xl flex items-center justify-center text-accent-soft shadow-sm group-hover:shadow-primary-glow transition-all duration-base">
                             <Sparkles size={18} />
                         </div>
-                        <span className="font-heading font-bold text-xl text-coffee-800 tracking-tight">Ayala Cakes</span>
+                        <span className="font-heading font-bold text-xl text-primary tracking-tight">Ayala Cakes</span>
                     </button>
 
                     {/* Nav Tabs */}
@@ -35,10 +39,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
                         {/* Calculator Tab */}
                         <button
                             onClick={() => setView('HOME')}
-                            className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${isCalculatorActive
-                                ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                                : 'text-coffee-800/60 hover:text-coffee-800 hover:bg-rose-50'
-                                }`}
+                            className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-slow flex items-center gap-2 whitespace-nowrap ${isCalculatorActive ? activeTabClass : inactiveTabClass}`}
                         >
                             מחשבון
                         </button>
@@ -48,10 +49,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
                             <>
                                 <button
                                     onClick={() => setView('ORDERS_DASHBOARD')}
-                                    className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${isOrdersActive
-                                        ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                                        : 'text-coffee-800/60 hover:text-coffee-800 hover:bg-rose-50'
-                                        }`}
+                                    className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-slow flex items-center gap-2 whitespace-nowrap ${isOrdersActive ? activeTabClass : inactiveTabClass}`}
                                 >
                                     <ChefHat size={16} />
                                     <span className="hidden sm:inline">הזמנות</span>
@@ -59,10 +57,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
 
                                 <button
                                     onClick={() => setView('ADMIN_DASHBOARD')}
-                                    className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${isDashboardActive
-                                        ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                                        : 'text-coffee-800/60 hover:text-coffee-800 hover:bg-rose-50'
-                                        }`}
+                                    className={`relative px-4 py-2 rounded-xl text-sm font-bold transition-all duration-slow flex items-center gap-2 whitespace-nowrap ${isDashboardActive ? activeTabClass : inactiveTabClass}`}
                                 >
                                     <LayoutDashboard size={16} />
                                     <span className="hidden sm:inline">ניהול</span>
@@ -74,20 +69,19 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, setVi
                     {/* Right Actions */}
                     <div className="flex items-center gap-2 pl-2">
                         {isAdmin ? (
-                            <button
+                            <IconButton
+                                icon={<LogOut size={20} />}
+                                variant="ghost"
+                                label="יציאה"
                                 onClick={() => {
                                     if (logoutAdmin) logoutAdmin();
                                     setView('HOME');
                                 }}
-                                className="w-10 h-10 flex items-center justify-center text-rose-500/70 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                                title="יציאה"
-                            >
-                                <LogOut size={20} />
-                            </button>
+                            />
                         ) : (
                             <button
                                 onClick={() => setView('ADMIN_LOGIN')}
-                                className="px-4 py-2 text-xs font-bold text-coffee-800/70 bg-white border border-rose-100 rounded-xl hover:bg-rose-50 transition-colors flex items-center gap-2 shadow-sm"
+                                className="px-4 py-2 text-xs font-bold text-secondary bg-white border border-light rounded-xl hover:bg-accent-ghost transition-colors duration-base flex items-center gap-2 shadow-sm"
                             >
                                 <Lock size={14} />
                                 <span>כניסה</span>

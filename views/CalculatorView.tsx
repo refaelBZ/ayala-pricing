@@ -1,8 +1,10 @@
 import React from 'react';
-import { ArrowLeft, Copy, ChevronRight, Check } from 'lucide-react';
-import { Option, OrderItem, InputRequest } from '../types';
+import { Copy, ChevronRight, Check } from 'lucide-react';
+import { InputRequest, OrderItem } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
+import { SubHeader } from '../components/SubHeader';
+import { SectionHeader } from '../components/SectionHeader';
 
 type Props = Pick<AppState, 'data' | 'selectedProductId' | 'selections' | 'setSelections' | 'setView' | 'setPendingOrder' | 'setDynamicDetails' | 'showToast'>;
 
@@ -46,24 +48,18 @@ export const CalculatorView: React.FC<Props> = ({
     };
 
     return (
-        <div className="min-h-screen bg-rose-50/50 flex flex-col">
+        <div className="min-h-screen flex flex-col">
             {/* Sub-header */}
-            <div className="sticky top-0 bg-white/80 backdrop-blur-md z-20 px-4 py-4 border-b border-rose-100 flex items-center justify-between shadow-sm">
-                <button onClick={() => setView('HOME')} className="p-2 -mr-2 text-coffee-800/60 hover:text-coffee-800 hover:bg-rose-50 rounded-full transition-colors">
-                    <ArrowLeft />
-                </button>
-                <h2 className="font-heading font-bold text-lg text-coffee-800">{product.name}</h2>
-                <div className="w-8"></div>
-            </div>
+            <SubHeader title={product.name} onBack={() => setView('HOME')} />
 
             {/* Content */}
             <div className="p-6 pb-40 space-y-8 overflow-y-auto">
                 {product.categories.map(cat => (
                     <div key={cat.id} className="space-y-4">
-                        <h3 className="font-heading font-bold text-coffee-800 px-1 text-lg flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-rose-400"></div>
+                        <SectionHeader size="lg">
+                            <div className="w-1.5 h-1.5 rounded-full bg-accent-soft"></div>
                             {cat.name}
-                        </h3>
+                        </SectionHeader>
 
                         {cat.type === 'radio' ? (
                             <div className="flex flex-col gap-3">
@@ -73,13 +69,13 @@ export const CalculatorView: React.FC<Props> = ({
                                         <button
                                             key={opt.id}
                                             onClick={() => setSelections(prev => ({ ...prev, [cat.id]: opt.id }))}
-                                            className={`relative p-4 rounded-2xl text-right transition-all duration-200 flex items-center justify-between group ${isSelected
-                                                ? 'bg-white shadow-md ring-2 ring-rose-300'
-                                                : 'bg-white/60 hover:bg-white shadow-sm ring-1 ring-transparent hover:ring-rose-100'
+                                            className={`relative p-4 rounded-2xl text-right transition-all duration-base flex items-center justify-between group ${isSelected
+                                                ? 'bg-white shadow-md ring-2 ring-accent-muted'
+                                                : 'bg-white/60 hover:bg-white shadow-sm ring-1 ring-transparent hover:ring-accent-ghost'
                                                 }`}
                                         >
-                                            <span className={`font-medium text-lg ${isSelected ? 'text-coffee-800' : 'text-coffee-800/70'}`}>{opt.name}</span>
-                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-rose-400 bg-rose-400' : 'border-rose-200 bg-transparent'}`}>
+                                            <span className={`font-medium text-body-lg ${isSelected ? 'text-primary' : 'text-secondary'}`}>{opt.name}</span>
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-base ${isSelected ? 'border-accent-soft bg-accent-soft' : 'border-default bg-transparent'}`}>
                                                 {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                                             </div>
                                         </button>
@@ -100,13 +96,13 @@ export const CalculatorView: React.FC<Props> = ({
                                                     : [...currentSelected, opt.id];
                                                 setSelections(prev => ({ ...prev, [cat.id]: newSelection }));
                                             }}
-                                            className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between ${isSelected
-                                                ? 'bg-white shadow-md ring-2 ring-rose-300'
+                                            className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-base flex items-center justify-between ${isSelected
+                                                ? 'bg-white shadow-md ring-2 ring-accent-muted'
                                                 : 'bg-white/60 hover:bg-white shadow-sm'
                                                 }`}
                                         >
-                                            <span className={`font-medium ${isSelected ? 'text-coffee-800' : 'text-coffee-800/70'}`}>{opt.name}</span>
-                                            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-rose-400 border-rose-400' : 'border-rose-200'}`}>
+                                            <span className={`font-medium ${isSelected ? 'text-primary' : 'text-secondary'}`}>{opt.name}</span>
+                                            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-base ${isSelected ? 'bg-accent-soft border-accent-soft' : 'border-default'}`}>
                                                 {isSelected && <Check size={14} className="text-white" />}
                                             </div>
                                         </div>
@@ -122,11 +118,11 @@ export const CalculatorView: React.FC<Props> = ({
             <div className="fixed bottom-6 left-4 right-4 z-30">
                 <div className="glass-panel rounded-3xl p-2 pl-3 shadow-soft flex items-center gap-4">
                     <div className="flex-1 pr-4">
-                        <span className="text-xs text-coffee-800/60 font-medium block">סה"כ לתשלום</span>
-                        <span className="text-3xl font-heading font-bold text-coffee-800 tracking-tight leading-none">₪{total}</span>
+                        <span className="text-caption text-secondary font-medium block">סה"כ לתשלום</span>
+                        <span className="text-3xl font-heading font-bold text-primary tracking-tight leading-none">₪{total}</span>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="secondary" onClick={handleCopy} className="md:px-6 h-14 rounded-2xl font-bold tracking-wide border-2 bg-transparent">
+                        <Button variant="outline" onClick={handleCopy} className="md:px-6 h-14 rounded-2xl font-bold tracking-wide">
                             <Copy size={18} />
                             <span className="hidden md:inline">העתק</span>
                         </Button>
@@ -190,13 +186,13 @@ export const CalculatorView: React.FC<Props> = ({
                                     productName: product.name,
                                     price: total,
                                     details: detailsList.join('\n'),
-                                    _inputRequests: inputRequests // Was _inputConfigs
+                                    _inputRequests: inputRequests
                                 }];
                                 setPendingOrder({ items, totalPrice: total });
                                 setDynamicDetails({});
                                 setView('ORDER_FORM');
                             }}
-                            className="px-6 h-14 rounded-2xl text-lg font-bold tracking-wide shadow-rose-400/30"
+                            className="px-6 h-14 rounded-2xl text-lg font-bold tracking-wide shadow-primary-glow"
                         >
                             <span>המשך</span>
                             <ChevronRight className="rotate-180" size={18} />

@@ -34,6 +34,7 @@ export const useAppState = () => {
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<ViewState>('HOME');
     const [toastMsg, setToastMsg] = useState('');
+    const [isPublicView, setIsPublicView] = useState(false);
 
     // --- Admin State (persisted in localStorage) ---
     const [isAdmin, setIsAdmin] = useState<boolean>(() => {
@@ -69,6 +70,27 @@ export const useAppState = () => {
 
     // --- Admin Login Input (ephemeral, not persisted) ---
     const [adminPasswordInput, setAdminPasswordInput] = useState('');
+
+    // --- Public View Logic ---
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const publicOrderId = params.get('orderId');
+        if (publicOrderId) {
+            setIsPublicView(true);
+            setView('ORDER_DETAILS');
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isPublicView && !loading && orders.length > 0) {
+            const params = new URLSearchParams(window.location.search);
+            const publicOrderId = params.get('orderId');
+            const order = orders.find(o => o.id === publicOrderId);
+            if (order) {
+                setSelectedOrder(order);
+            }
+        }
+    }, [isPublicView, loading, orders]);
 
     // --- Data Loading ---
     const loadData = async () => {
@@ -130,6 +152,7 @@ export const useAppState = () => {
         showToast,
         resetOrderForm,
         toastMsg,
+        isPublicView,
     };
 };
 
