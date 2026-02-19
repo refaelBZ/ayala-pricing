@@ -679,15 +679,42 @@ The app is configured for **Vercel** with `vercel.json` providing SPA rewrites t
 
 ---
 
-## 🌳 Git Strategy
+## 🌳 Git Strategy & Workflow
 
-| Branch | Purpose |
-|--------|---------|
-| `master` | Stable, production-ready code |
-| `qa` | Pre-production testing environment |
-| `dev` | Active development |
+This project strictly follows the **Feature Branch Workflow**.
+**Direct commits to `main` or `dev` are forbidden.**
 
-**Convention:** `feat/feature-name` → merge to `dev` → merge to `qa` → release to `master`.
+### Branch Roles
+
+| Branch | Role | Description |
+|---|---|---|
+| **`main`** | **Production** | The stable code currently deployed to users. Only updated via Pull Request. |
+| **`dev`** | **Development** | The integration branch for current work. All features merge here first. |
+| **`feature/*`** | **New Features** | Temporary branches for specific tasks (e.g., `feature/add-coupon`). |
+| **`hotfix/*`** | **Hotfixes** | Urgent fixes for production bugs (merge to `main` & `dev`). |
+
+### Adding a New Feature
+
+1.  **Start from `dev`:** Always ensure you have the latest code.
+    ```bash
+    git checkout dev
+    git pull origin dev
+    ```
+
+2.  **Create a Feature Branch:** Name it clearly.
+    ```bash
+    git checkout -b feature/my-new-feature
+    ```
+
+3.  **Work & Commit:**
+    - Commit small, logical changes.
+    - Write clear commit messages.
+
+4.  **Push & PR:**
+    - Push your branch to GitHub.
+    - Open a Pull Request (PR) to merge into `dev`.
+    - **Wait for review/approval** (if applicable).
+    - Merge and delete the feature branch.
 
 ---
 
