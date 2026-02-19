@@ -39,7 +39,7 @@ const App: React.FC = () => {
       {view === 'ORDERS_DASHBOARD' && <OrdersDashboardView {...state} />}
       {view === 'ORDER_DETAILS' && <OrderDetailsView {...state} isPublicView={state.isPublicView} />}
       {view === 'ORDER_EDIT' && <OrderEditView {...state} />}
-      {view === 'ADMIN_LOGIN' && <AdminLoginView {...state} />}
+      {view === 'ADMIN_LOGIN' && <AdminLoginView navigate={state.navigate} showToast={state.showToast} loginAsAdmin={state.loginAsAdmin} />}
       {view === 'ADMIN_DASHBOARD' && <AdminDashboardView {...state} />}
       {view === 'PRODUCT_EDITOR' && <ProductEditorView {...state} />}
     </div>

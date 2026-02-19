@@ -1,20 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 
-type Props = Pick<AppState, 'adminPasswordInput' | 'setAdminPasswordInput' | 'navigate' | 'showToast' | 'loginAsAdmin'>;
+type Props = Pick<AppState, 'navigate' | 'showToast' | 'loginAsAdmin'>;
 
-export const AdminLoginView: React.FC<Props> = ({ adminPasswordInput, setAdminPasswordInput, navigate, showToast, loginAsAdmin }) => {
-    const handleLogin = () => {
-        if (adminPasswordInput === import.meta.env.VITE_ADMIN_PASSWORD) {
-            setAdminPasswordInput('');
-            loginAsAdmin();
-            navigate('ORDERS_DASHBOARD');
-        } else {
-            showToast('סיסמה שגויה');
+export const AdminLoginView: React.FC<Props> = ({ navigate, showToast, loginAsAdmin }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [busy, setBusy] = useState(false);
+
+    const handleLogin = async () => {
+        if (!email || !password) {
+            showToast('יש להזין אימייל וסיסמה');
+            return;
         }
+        setBusy(true);
+        try {
+            await loginAsAdmin(email, password);
+            // onAuthStateChanged will update isAdmin; the route guard in useAppState
+            // will redirect to ORDERS_DASHBOARD automatically.
+        } catch {
+            showToast('אימייל או סיסמה שגויים');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') handleLogin();
     };
 
     return (
@@ -27,20 +42,33 @@ export const AdminLoginView: React.FC<Props> = ({ adminPasswordInput, setAdminPa
                 </div>
 
                 <h2 className="text-heading-2 mb-2">כניסה למנהלים</h2>
-                <p className="text-body-sm text-muted mb-6">יש להזין קוד גישה כדי להמשיך</p>
+                <p className="text-body-sm text-muted mb-6">יש להזין פרטי גישה כדי להמשיך</p>
 
-                <Input
-                    type="password"
-                    placeholder="קוד גישה"
-                    className="text-center text-lg mb-6 tracking-widest bg-white/50 h-14"
-                    value={adminPasswordInput}
-                    onChange={(e) => setAdminPasswordInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                />
+                <div className="space-y-3 mb-6">
+                    <Input
+                        type="email"
+                        placeholder="אימייל"
+                        className="text-center bg-white/50 h-14"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        dir="ltr"
+                    />
+                    <Input
+                        type="password"
+                        placeholder="סיסמה"
+                        className="text-center text-lg tracking-widest bg-white/50 h-14"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                    />
+                </div>
 
                 <div className="flex gap-3">
-                    <Button variant="ghost" fullWidth onClick={() => navigate('HOME')}>ביטול</Button>
-                    <Button fullWidth onClick={handleLogin} className="shadow-primary-glow">כניסה</Button>
+                    <Button variant="ghost" fullWidth onClick={() => navigate('HOME')} disabled={busy}>ביטול</Button>
+                    <Button fullWidth onClick={handleLogin} className="shadow-primary-glow" disabled={busy}>
+                        {busy ? 'מתחבר...' : 'כניסה'}
+                    </Button>
                 </div>
             </div>
         </div>
