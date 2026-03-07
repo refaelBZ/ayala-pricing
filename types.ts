@@ -22,6 +22,7 @@ export interface Option {
   linkTier: number; // 0, 1, 2 for linked tiers, -1 for manual
   manualPrice?: number; // Used if linkTier is -1
   formInputs?: OptionFormInput;
+  linkedProductId?: string; // If set, selecting this option triggers a linked product modal
 }
 
 export type CategoryType = 'radio' | 'checkbox';
@@ -59,6 +60,8 @@ export interface OrderItem {
   selectedDetails?: SelectedDetail[];
   // Internal use for UI flow to render inputs
   _inputRequests?: InputRequest[];
+  // Internal flag: true for items added via linked-product modal (quantity locked at 1)
+  _isLinked?: boolean;
 }
 
 export interface Customer {

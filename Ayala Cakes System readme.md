@@ -159,10 +159,24 @@ interface OptionFormInput {
 - Categories are displayed with all their options.
 - `radio` categories render as single-select buttons with a circular indicator.
 - `checkbox` categories render as multi-select buttons with a checkmark indicator.
+- Options that have a linked product show a subtle **"+ תוספת נפרדת"** hint below their name.
 - **Sticky bottom panel** shows:
   - Real-time calculated price.
   - **"Copy"** button — generates a formatted WhatsApp quote message using the product's `messageTemplate` and copies it to clipboard.
-  - **"Continue"** button — navigates to the Order Form.
+  - **"Continue"** button — evaluates any linked products in the selection (see Step 2.5), then navigates to the Order Form.
+
+### Step 2.5 — Linked Product Modal (`LinkedProductModal`) _(conditional)_
+
+If one or more of the customer's selected options has a `linkedProductId`, clicking "Continue" **does not immediately navigate to the Order Form**. Instead:
+
+1. A **bottom-sheet modal** slides up for the first linked product.
+2. The modal renders a **full Calculator UI** (categories, radio/checkbox options, live price) for the linked product.
+3. The customer configures the linked product and clicks **"אישור" (Confirm)**.
+4. If multiple linked products are queued, the next modal opens automatically.
+5. Once all linked products are confirmed, the system navigates to the Order Form with **all items** assembled.
+6. If the customer clicks **✕ (Cancel)**, they remain on the Calculator with no changes.
+
+> **Key behaviour:** The linked product always has `quantity: 1` in the order, completely independent of the main product's quantity.
 
 ### Step 3 — Order Form (`OrderFormView`)
 
@@ -179,7 +193,7 @@ The form is divided into sections:
 
 **Referral source options:** Instagram, Facebook, WhatsApp, Friend, Other.
 
-Each item in the Order Summary includes a **quantity selector** (−/+ controls, minimum 1). The total price updates in real time as quantity changes (`totalPrice = unitPrice × quantity`).
+Each **main** item in the Order Summary includes a **quantity selector** (−/+ controls, minimum 1). The total price updates in real time as quantity changes (`totalPrice = unitPrice × quantity`). **Linked add-on items** are shown with a `תוספת` badge and have **no quantity controls** — they are always counted as 1.
 
 ### Step 4 — Order Submission
 - The order is saved to Firestore with:
@@ -199,23 +213,37 @@ Each item in the Order Summary includes a **quantity selector** (−/+ controls,
 Displays all orders as cards, sorted by event date (nearest first).
 
 **Each order card shows:**
-- Event date and time (Hebrew locale format: "Sunday, Feb 5").
-- Execution status (colored badge).
-- Customer name.
-- Ordered product names.
+- Event date and time.
+- Customer name and ordered product names (tappable → Order Details).
+- **Inline status dropdowns** (save directly to Firestore on change):
+  - **Execution status** — טרם התחיל / בהכנה / מוכן לאיסוף / נמסר (color-coded chip).
+  - **Payment status** — לא שולם / מקדמה / שולם במלואו (color-coded chip).
+  - **Invoice toggle button** — flips `isInvoiceIssued`; shows "✓ קבלה" when issued.
 - Total price.
-- Payment status (colored badge).
-- Invoice status.
-- Delete button.
+- **Quick Edit button** (✏️) — navigates directly to `ORDER_EDIT` without opening the order details first.
+- **Delete button** (🗑️).
 
-**Filter chips:**
+**Filter bar:**
 
-| Filter | Logic |
-|--------|-------|
-| All | Shows all orders |
-| This Week | Orders with event dates within the next 7 days |
-| ⚠️ Unpaid | Orders where `paymentStatus !== 'paid_full'` |
-| Awaiting Receipt | Orders where `isInvoiceIssued === false` |
+The filter bar has two modes controlled by a **"שלב סינונים"** checkbox at the end of the row:
+
+| Mode | Behavior |
+|------|----------|
+| **Tab mode** (default) | Chips behave like tabs — clicking one deselects the previous |
+| **Multi-filter mode** (checkbox on) | Chips toggle independently; results must match **all** active chips simultaneously (AND logic) |
+
+Available filter chips:
+
+| Chip | Logic |
+|------|-------|
+| 📅 השבוע | Event date within the next 7 days |
+| ⚠️ לא שולם | `paymentStatus === 'unpaid'` |
+| 🔶 מקדמה בלבד | `paymentStatus === 'deposit'` |
+| 🧾 ממתין לקבלה | `isInvoiceIssued === false` |
+| ✅ הושלמו | `executionStatus === 'delivered'` only |
+
+> **Delivered orders are always hidden** from all filters except ✅ הושלמו, keeping the active workload view clean. A **"נקה סינון"** clear button appears whenever any filter is active.
+
 
 ### Order Details View (`OrderDetailsView`)
 
@@ -300,6 +328,7 @@ Any number of categories can be created. Each category has:
   - **Requires detail? (`formInputs`)** — a checkbox that enables dynamic fields config:
     - Field label.
     - Count.
+  - **Link to Product (`linkedProductId`)** — optionally links this option to another existing product. When the customer selects this option and clicks "Continue", a **Linked Product Modal** opens for the linked product so the customer can configure it independently as a separate add-on.
 
 #### Part 3 — Message Template
 
@@ -345,6 +374,7 @@ interface Option {
   linkTier: number;              // 0/1/2 = tier link index, -1 = manual price
   manualPrice?: number;          // Manual price (only when linkTier === -1)
   formInputs?: OptionFormInput;  // Dynamic fields triggered by selecting this option
+  linkedProductId?: string;      // If set, selecting this option opens a Linked Product Modal
 }
 
 interface OptionFormInput {
@@ -393,6 +423,9 @@ interface OrderItem {
   quantity: number;              // Always >= 1; default 1
   details: string;               // Concatenated text of selected options
   selectedDetails?: SelectedDetail[];  // Dynamic details filled by the customer
+  // Internal UI-only fields (stripped before saving to Firestore):
+  _inputRequests?: InputRequest[];  // Used during the Order Form flow to render inputs
+  _isLinked?: boolean;              // True for items added via the Linked Product Modal (quantity locked at 1)
 }
 
 interface SelectedDetail {
@@ -628,7 +661,7 @@ There is no Redux, Context API, or external store.
 | **Core** | `data` (products), `loading`, `view` (ViewState), `toastMsg` |
 | **Admin** | `isAdmin` (derived from Firebase Auth), `authReady`, `loginAsAdmin()`, `logoutAdmin()` |
 | **Public View** | `isPublicView` — `true` when the app is loaded via a `?orderId=` URL; suppresses the header and admin controls |
-| **Orders** | `orders`, `orderFilter`, `selectedOrder` |
+| **Orders** | `orders`, `orderFilter` (`string[]` — multi-select active filter IDs), `selectedOrder` |
 | **Calculator** | `selectedProductId`, `selections` |
 | **Product Editor** | `editingProduct` |
 | **Order Form** | `pendingOrder`, `dynamicDetails`, `orderForm` |

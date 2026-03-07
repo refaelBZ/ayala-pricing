@@ -120,7 +120,7 @@ export const useAppState = () => {
 
     // --- Orders State ---
     const [orders, setOrders] = useState<Order[]>([]);
-    const [orderFilter, setOrderFilter] = useState<'all' | 'week' | 'unpaid' | 'no_invoice'>('all');
+    const [orderFilter, setOrderFilter] = useState<string[]>([]);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     // --- Calculator State ---

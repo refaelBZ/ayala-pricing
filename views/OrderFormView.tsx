@@ -41,8 +41,9 @@ export const OrderFormView: React.FC<Props> = ({
                 label: req.specs.label || 'פרטים',
                 values: dynamicDetails[req.id] || []
             }));
+            // Strip internal UI-only fields before saving
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { _inputRequests, ...cleanItem } = item;
+            const { _inputRequests, _isLinked, ...cleanItem } = item;
             return { ...cleanItem, selectedDetails };
         });
 
@@ -101,29 +102,38 @@ export const OrderFormView: React.FC<Props> = ({
                         {pendingOrder.items.map((item, idx) => (
                             <div key={idx} className="bg-accent-ghost/50 p-4 rounded-2xl text-body-sm space-y-3">
                                 <div className="flex justify-between items-start font-bold text-primary">
-                                    <span>{item.productName}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span>{item.productName}</span>
+                                        {item._isLinked && (
+                                            <span className="text-micro font-semibold bg-accent-ghost text-accent px-2 py-0.5 rounded-full border border-light">
+                                                תוספת
+                                            </span>
+                                        )}
+                                    </div>
                                     <span>₪{item.price * item.quantity}</span>
                                 </div>
                                 <div className="text-secondary whitespace-pre-wrap leading-relaxed pl-4 border-r-2 border-default text-caption">
                                     {item.details}
                                 </div>
-                                {/* Quantity control */}
-                                <div className="flex items-center justify-between pt-1">
-                                    <span className="text-caption text-muted">כמות</span>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => updateQuantity(idx, -1)}
-                                            disabled={item.quantity <= 1}
-                                            className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white disabled:opacity-30 transition-colors"
-                                        >−</button>
-                                        <span className="w-6 text-center font-bold text-primary">{item.quantity}</span>
-                                        <button
-                                            onClick={() => updateQuantity(idx, 1)}
-                                            className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white transition-colors"
-                                        >+</button>
+                                {/* Quantity control — hidden for linked (add-on) items */}
+                                {!item._isLinked && (
+                                    <div className="flex items-center justify-between pt-1">
+                                        <span className="text-caption text-muted">כמות</span>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => updateQuantity(idx, -1)}
+                                                disabled={item.quantity <= 1}
+                                                className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white disabled:opacity-30 transition-colors"
+                                            >−</button>
+                                            <span className="w-6 text-center font-bold text-primary">{item.quantity}</span>
+                                            <button
+                                                onClick={() => updateQuantity(idx, 1)}
+                                                className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white transition-colors"
+                                            >+</button>
+                                        </div>
                                     </div>
-                                </div>
-                                {item.quantity > 1 && (
+                                )}
+                                {!item._isLinked && item.quantity > 1 && (
                                     <div className="text-caption text-muted text-left">
                                         ₪{item.price} × {item.quantity}
                                     </div>
