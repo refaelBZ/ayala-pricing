@@ -11,9 +11,9 @@ import { BaseCard } from '../components/BaseCard';
 import { IconButton } from '../components/IconButton';
 import { saveProductToFirestore, generateUUID } from '../services/storage';
 
-type Props = Pick<AppState, 'editingProduct' | 'setEditingProduct' | 'navigate' | 'setLoading' | 'loadData' | 'showToast'>;
+type Props = Pick<AppState, 'data' | 'editingProduct' | 'setEditingProduct' | 'navigate' | 'setLoading' | 'loadData' | 'showToast'>;
 
-export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingProduct, navigate, setLoading, loadData, showToast }) => {
+export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEditingProduct, navigate, setLoading, loadData, showToast }) => {
     if (!editingProduct) return null;
 
     const saveProduct = async () => {
@@ -287,6 +287,37 @@ export const ProductEditorView: React.FC<Props> = ({ editingProduct, setEditingP
                                                         />
                                                     </div>
                                                 </div>
+                                            )}
+                                        </div>
+
+                                        {/* Link to Product Config */}
+                                        <div className="mt-2 pt-2 border-t border-light/50">
+                                            <label className="text-caption text-secondary block mb-1.5">קישור למוצר (תוספת נפרדת)</label>
+                                            <BaseSelect
+                                                className="h-9 text-body-sm"
+                                                value={opt.linkedProductId || ''}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    const newCats = [...editingProduct.categories];
+                                                    if (val) {
+                                                        newCats[catIdx].options[optIdx] = { ...newCats[catIdx].options[optIdx], linkedProductId: val };
+                                                    } else {
+                                                        const { linkedProductId: _removed, ...rest } = newCats[catIdx].options[optIdx];
+                                                        newCats[catIdx].options[optIdx] = rest as Option;
+                                                    }
+                                                    setEditingProduct({ ...editingProduct, categories: newCats });
+                                                }}
+                                            >
+                                                <option value="">ללא קישור</option>
+                                                {data.products
+                                                    .filter(p => p.id !== editingProduct.id)
+                                                    .map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                    ))
+                                                }
+                                            </BaseSelect>
+                                            {opt.linkedProductId && (
+                                                <p className="text-micro text-accent mt-1">✓ בחירת אפשרות זו תפתח מחשבון נפרד למוצר המקושר</p>
                                             )}
                                         </div>
                                     </div>

@@ -112,8 +112,18 @@ export const OrderDetailsView: React.FC<Props> = ({
                         {items.map((item, idx) => (
                             <div key={idx} className="space-y-2">
                                 <div className="flex justify-between items-start">
-                                    <span className="font-bold text-lg">{item.productName}</span>
-                                    <span className="font-bold">₪{item.price}</span>
+                                    <div>
+                                        <span className="font-bold text-lg">{item.productName}</span>
+                                        {(item.quantity ?? 1) > 1 && (
+                                            <span className="text-sm text-muted mr-2">× {item.quantity}</span>
+                                        )}
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="font-bold">₪{item.price * (item.quantity ?? 1)}</span>
+                                        {(item.quantity ?? 1) > 1 && (
+                                            <div className="text-xs text-muted">₪{item.price} ליחידה</div>
+                                        )}
+                                    </div>
                                 </div>
                                 <p className="text-sm text-secondary whitespace-pre-wrap">{item.details}</p>
 
