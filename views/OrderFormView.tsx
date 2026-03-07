@@ -11,11 +11,20 @@ import { BaseCard } from '../components/BaseCard';
 import { ToggleGroup } from '../components/ToggleGroup';
 import { saveOrderToFirestore, generateUUID } from '../services/storage';
 
-type Props = Pick<AppState, 'pendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'navigate' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm' | 'setSelectedOrder'>;
+type Props = Pick<AppState, 'pendingOrder' | 'setPendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'navigate' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm' | 'setSelectedOrder'>;
 
 export const OrderFormView: React.FC<Props> = ({
-    pendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, navigate, showToast, setLoading, loadData, resetOrderForm, setSelectedOrder
+    pendingOrder, setPendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, navigate, showToast, setLoading, loadData, resetOrderForm, setSelectedOrder
 }) => {
+    const updateQuantity = (itemIndex: number, delta: number) => {
+        if (!pendingOrder) return;
+        const updatedItems = pendingOrder.items.map((item, i) => {
+            if (i !== itemIndex) return item;
+            return { ...item, quantity: Math.max(1, item.quantity + delta) };
+        });
+        const newTotal = updatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        setPendingOrder({ items: updatedItems, totalPrice: newTotal });
+    };
     if (!pendingOrder) return null;
 
     const handleSubmitOrder = async () => {
@@ -88,16 +97,37 @@ export const OrderFormView: React.FC<Props> = ({
                     <SectionHeader icon={<Sparkles size={18} />}>
                         סיכום הזמנה
                     </SectionHeader>
-                    <div className="mt-3">
+                    <div className="mt-3 space-y-3">
                         {pendingOrder.items.map((item, idx) => (
-                            <div key={idx} className="bg-accent-ghost/50 p-4 rounded-2xl text-body-sm space-y-2">
-                                <div className="flex justify-between font-bold text-primary">
+                            <div key={idx} className="bg-accent-ghost/50 p-4 rounded-2xl text-body-sm space-y-3">
+                                <div className="flex justify-between items-start font-bold text-primary">
                                     <span>{item.productName}</span>
-                                    <span>₪{item.price}</span>
+                                    <span>₪{item.price * item.quantity}</span>
                                 </div>
                                 <div className="text-secondary whitespace-pre-wrap leading-relaxed pl-4 border-r-2 border-default text-caption">
                                     {item.details}
                                 </div>
+                                {/* Quantity control */}
+                                <div className="flex items-center justify-between pt-1">
+                                    <span className="text-caption text-muted">כמות</span>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => updateQuantity(idx, -1)}
+                                            disabled={item.quantity <= 1}
+                                            className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white disabled:opacity-30 transition-colors"
+                                        >−</button>
+                                        <span className="w-6 text-center font-bold text-primary">{item.quantity}</span>
+                                        <button
+                                            onClick={() => updateQuantity(idx, 1)}
+                                            className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white transition-colors"
+                                        >+</button>
+                                    </div>
+                                </div>
+                                {item.quantity > 1 && (
+                                    <div className="text-caption text-muted text-left">
+                                        ₪{item.price} × {item.quantity}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

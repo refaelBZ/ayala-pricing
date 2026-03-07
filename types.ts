@@ -53,7 +53,8 @@ export interface SelectedDetail {
 export interface OrderItem {
   productId: string;
   productName: string;
-  price: number;
+  price: number;       // Unit price
+  quantity: number;    // Always >= 1
   details: string; // The generated string description
   selectedDetails?: SelectedDetail[];
   // Internal use for UI flow to render inputs

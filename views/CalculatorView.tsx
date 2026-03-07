@@ -19,6 +19,8 @@ export const CalculatorView: React.FC<Props> = ({
     const resolvedPrices: number[] = [];
     const detailsList: string[] = [];
 
+    const manualPrices: number[] = [];
+
     product.categories.forEach(cat => {
         const selectionId = selections[cat.id];
         if (!selectionId) return;
@@ -26,19 +28,21 @@ export const CalculatorView: React.FC<Props> = ({
         idsToCheck.forEach(id => {
             const opt = cat.options.find(o => o.id === id);
             if (opt) {
-                let price = 0;
                 if (opt.linkTier === -1) {
-                    price = opt.manualPrice || 0;
+                    // Manual-priced addons (e.g. delivery) are summed on top of the base price
+                    manualPrices.push(opt.manualPrice || 0);
                 } else if (opt.linkTier >= 0 && opt.linkTier < product.tiers.length) {
-                    price = product.tiers[opt.linkTier].price;
+                    resolvedPrices.push(product.tiers[opt.linkTier].price);
                 }
-                resolvedPrices.push(price);
                 detailsList.push(opt.name);
             }
         });
     });
 
-    total = resolvedPrices.length > 0 ? Math.max(...resolvedPrices) : 0;
+    // Base price = highest tier selected; addons are added on top
+    const basePrice = resolvedPrices.length > 0 ? Math.max(...resolvedPrices) : 0;
+    const addonsTotal = manualPrices.reduce((sum, p) => sum + p, 0);
+    total = basePrice + addonsTotal;
 
     const handleCopy = () => {
         let text = product.messageTemplate;
@@ -185,6 +189,7 @@ export const CalculatorView: React.FC<Props> = ({
                                     productId: product.id,
                                     productName: product.name,
                                     price: total,
+                                    quantity: 1,
                                     details: detailsList.join('\n'),
                                     _inputRequests: inputRequests
                                 }];
