@@ -25,13 +25,19 @@ export const CalculatorView: React.FC<Props> = ({
         ? data.products.find(p => p.id === activeLinkedProductId) ?? null
         : null;
 
+    // ─── Merge product categories + applicable global categories ─────────────
+    const applicableGlobalCats = data.globalCategories.filter(
+        gc => gc.targetProductIds.includes(selectedProductId!)
+    );
+    const allCategories = [...product.categories, ...applicableGlobalCats];
+
     // ─── Dynamic Tier Linking Logic ───────────────────────────────────────────
     let total = 0;
     const resolvedPrices: number[] = [];
     const detailsList: string[] = [];
     const manualPrices: number[] = [];
 
-    product.categories.forEach(cat => {
+    allCategories.forEach(cat => {
         const selectionId = selections[cat.id];
         if (!selectionId) return;
         const idsToCheck = Array.isArray(selectionId) ? selectionId : [selectionId];
@@ -59,7 +65,7 @@ export const CalculatorView: React.FC<Props> = ({
         let maxTierPrice = -1;
         const linkedProductIds: string[] = [];
 
-        product.categories.forEach(cat => {
+        allCategories.forEach(cat => {
             const selection = selections[cat.id];
             if (!selection) return;
             const ids = Array.isArray(selection) ? selection : [selection];
@@ -80,32 +86,32 @@ export const CalculatorView: React.FC<Props> = ({
             });
         });
 
-        // Tier includedSpecs
+        // The max tier's includedSpecs is the complete, explicit list of fields for that price level.
+        // Inherited fields from lower tiers are pre-populated by the admin in the Product Editor.
         if (maxTierIdx >= 0) {
-            const tier = product.tiers[maxTierIdx];
-            if (tier.includedSpecs) {
-                tier.includedSpecs.forEach((spec, idx) => {
-                    inputRequests.push({
-                        id: `tier-${maxTierIdx}-${idx}`,
-                        sourceName: `רמת ${tier.name}`,
-                        specs: spec
-                    });
+            product.tiers[maxTierIdx].includedSpecs?.forEach((spec, specIdx) => {
+                inputRequests.push({
+                    id: `tier-${maxTierIdx}-${specIdx}`,
+                    sourceName: product.tiers[maxTierIdx].name,
+                    specs: spec
                 });
-            }
+            });
         }
 
         // Option formInputs
-        product.categories.forEach(cat => {
+        allCategories.forEach(cat => {
             const selection = selections[cat.id];
             if (!selection) return;
             const ids = Array.isArray(selection) ? selection : [selection];
             ids.forEach(id => {
                 const opt = cat.options.find(o => o.id === id);
-                if (opt && opt.formInputs) {
-                    inputRequests.push({
-                        id: opt.id,
-                        sourceName: opt.name,
-                        specs: opt.formInputs
+                if (opt && opt.formInputs?.length) {
+                    opt.formInputs.forEach((spec, specIdx) => {
+                        inputRequests.push({
+                            id: `${opt.id}_${specIdx}`,
+                            sourceName: opt.name,
+                            specs: spec
+                        });
                     });
                 }
             });
@@ -182,7 +188,7 @@ export const CalculatorView: React.FC<Props> = ({
 
             {/* Content */}
             <div className="p-6 pb-40 space-y-8 overflow-y-auto">
-                {product.categories.map(cat => (
+                {allCategories.map(cat => (
                     <div key={cat.id} className="space-y-4">
                         <SectionHeader size="lg">
                             <div className="w-1.5 h-1.5 rounded-full bg-accent-soft"></div>

@@ -1,13 +1,14 @@
 export interface ProductTier {
   name: string;
   price: number;
-  includedSpecs?: OptionFormInput[];
+  includedSpecs?: OptionFormInput[]; // Fields shown cumulatively: tier N inherits specs from all tiers 0..N
 }
 
 export interface OptionFormInput {
   count: number;
   label: string;
   type?: 'text' | 'color' | 'select';
+  choices?: string[]; // Predefined dropdown choices; when set renders a <select> in the order form
 }
 
 export interface InputRequest {
@@ -21,7 +22,7 @@ export interface Option {
   name: string;
   linkTier: number; // 0, 1, 2 for linked tiers, -1 for manual
   manualPrice?: number; // Used if linkTier is -1
-  formInputs?: OptionFormInput;
+  formInputs?: OptionFormInput[]; // Multiple detail groups per option (e.g. Fillings + Colors)
   linkedProductId?: string; // If set, selecting this option triggers a linked product modal
 }
 
@@ -32,6 +33,14 @@ export interface Category {
   name: string;
   type: CategoryType;
   options: Option[];
+}
+
+export interface GlobalCategory {
+  id: string;
+  name: string;
+  type: CategoryType;
+  targetProductIds: string[]; // IDs of products this category applies to
+  options: Option[];          // Options always have linkTier: -1 (manualPrice only)
 }
 
 export interface Product {
@@ -96,6 +105,7 @@ export interface Order {
 
 export interface AppData {
   products: Product[];
+  globalCategories: GlobalCategory[];
 }
 
-export type ViewState = 'HOME' | 'CALCULATOR' | 'ADMIN_LOGIN' | 'ADMIN_DASHBOARD' | 'PRODUCT_EDITOR' | 'ORDER_FORM' | 'ORDERS_DASHBOARD' | 'ORDER_DETAILS' | 'ORDER_EDIT';
+export type ViewState = 'HOME' | 'CALCULATOR' | 'ADMIN_LOGIN' | 'ADMIN_DASHBOARD' | 'PRODUCT_EDITOR' | 'ORDER_FORM' | 'ORDERS_DASHBOARD' | 'ORDER_DETAILS' | 'ORDER_EDIT' | 'GLOBAL_CATEGORY_EDITOR';

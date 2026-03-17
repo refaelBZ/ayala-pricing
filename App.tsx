@@ -16,6 +16,7 @@ import { OrderEditView } from './views/OrderEditView';
 import { AdminLoginView } from './views/AdminLoginView';
 import { AdminDashboardView } from './views/AdminDashboardView';
 import { ProductEditorView } from './views/ProductEditorView';
+import { GlobalCategoryEditorView } from './views/GlobalCategoryEditorView';
 
 const App: React.FC = () => {
   const state = useAppState();
@@ -42,6 +43,7 @@ const App: React.FC = () => {
       {view === 'ADMIN_LOGIN' && <AdminLoginView navigate={state.navigate} showToast={state.showToast} loginAsAdmin={state.loginAsAdmin} />}
       {view === 'ADMIN_DASHBOARD' && <AdminDashboardView {...state} />}
       {view === 'PRODUCT_EDITOR' && <ProductEditorView {...state} />}
+      {view === 'GLOBAL_CATEGORY_EDITOR' && <GlobalCategoryEditorView {...state} />}
     </div>
   );
 };

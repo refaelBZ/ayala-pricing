@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sparkles, Edit2, Calendar, User, MapPin, FileText, Check } from 'lucide-react';
 import { Order } from '../types';
 import { AppState } from '../hooks/useAppState';
@@ -16,6 +16,9 @@ type Props = Pick<AppState, 'pendingOrder' | 'setPendingOrder' | 'dynamicDetails
 export const OrderFormView: React.FC<Props> = ({
     pendingOrder, setPendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, navigate, showToast, setLoading, loadData, resetOrderForm, setSelectedOrder
 }) => {
+    // Tracks which dropdown fields are in free-text "Other" mode: { [reqId_index]: true }
+    const [otherMode, setOtherMode] = useState<Record<string, boolean>>({});
+
     const updateQuantity = (itemIndex: number, delta: number) => {
         if (!pendingOrder) return;
         const updatedItems = pendingOrder.items.map((item, i) => {
@@ -161,23 +164,65 @@ export const OrderFormView: React.FC<Props> = ({
                                         <span className="text-caption font-normal text-accent bg-white/50 px-2 rounded-full">{req.specs.label}</span>
                                     </h4>
                                     <div className="space-y-3">
-                                        {Array.from({ length: req.specs.count || 1 }).map((_, i) => (
-                                            <Input
-                                                key={i}
-                                                label={`${req.specs.label} ${i + 1}`}
-                                                placeholder={`הכנס ${req.specs.label}...`}
-                                                className="bg-white h-10 text-body-sm"
-                                                value={dynamicDetails[req.id]?.[i] || ''}
-                                                onChange={(e) => {
-                                                    setDynamicDetails(prev => {
-                                                        const current = prev[req.id] || [];
-                                                        const updated = [...current];
-                                                        updated[i] = e.target.value;
-                                                        return { ...prev, [req.id]: updated };
-                                                    });
-                                                }}
-                                            />
-                                        ))}
+                                        {Array.from({ length: req.specs.count || 1 }).map((_, i) => {
+                                            const fieldKey = `${req.id}_${i}`;
+                                            const storedValue = dynamicDetails[req.id]?.[i] || '';
+                                            const isOther = otherMode[fieldKey] ?? false;
+                                            const hasChoices = req.specs.choices && req.specs.choices.length > 0;
+
+                                            const setValue = (val: string) => setDynamicDetails(prev => {
+                                                const updated = [...(prev[req.id] || [])];
+                                                updated[i] = val;
+                                                return { ...prev, [req.id]: updated };
+                                            });
+
+                                            if (hasChoices) {
+                                                return (
+                                                    <div key={i} className="space-y-2">
+                                                        <BaseSelect
+                                                            label={`${req.specs.label} ${i + 1}`}
+                                                            className="bg-white h-10 text-body-sm"
+                                                            value={isOther ? '__other__' : (storedValue || '')}
+                                                            onChange={e => {
+                                                                if (e.target.value === '__other__') {
+                                                                    setOtherMode(prev => ({ ...prev, [fieldKey]: true }));
+                                                                    setValue('');
+                                                                } else {
+                                                                    setOtherMode(prev => ({ ...prev, [fieldKey]: false }));
+                                                                    setValue(e.target.value);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <option value="" disabled>בחר {req.specs.label}...</option>
+                                                            {req.specs.choices!.map(choice => (
+                                                                <option key={choice} value={choice}>{choice}</option>
+                                                            ))}
+                                                            <option value="__other__">אחר / הקלד בעצמך...</option>
+                                                        </BaseSelect>
+                                                        {isOther && (
+                                                            <Input
+                                                                placeholder={`הכנס ${req.specs.label} בחופשיות...`}
+                                                                className="bg-white h-10 text-body-sm"
+                                                                value={storedValue}
+                                                                onChange={e => setValue(e.target.value)}
+                                                                autoFocus
+                                                            />
+                                                        )}
+                                                    </div>
+                                                );
+                                            }
+
+                                            return (
+                                                <Input
+                                                    key={i}
+                                                    label={`${req.specs.label} ${i + 1}`}
+                                                    placeholder={`הכנס ${req.specs.label}...`}
+                                                    className="bg-white h-10 text-body-sm"
+                                                    value={storedValue}
+                                                    onChange={e => setValue(e.target.value)}
+                                                />
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             ))
