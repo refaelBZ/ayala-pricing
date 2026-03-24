@@ -12,7 +12,7 @@ type Props = Pick<AppState, 'data' | 'navigate' | 'setEditingProduct' | 'setEdit
 
 export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditingProduct, setEditingGlobalCategory, setLoading, loadData, logoutAdmin }) => {
     return (
-        <div className="min-h-screen p-6 pb-24">
+        <div className="min-h-screen p-6 pb-28">
             <header className="flex items-center justify-between mb-8 mt-2">
                 <div>
                     <h1 className="text-heading-2">ניהול מוצרים</h1>
@@ -93,10 +93,9 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
             </div>
 
             <StickyFooter>
-                <div className="flex flex-col gap-3">
+                <div className="flex gap-3">
                     <Button
                         fullWidth
-                        size="lg"
                         onClick={() => {
                             const newProduct = {
                                 id: generateUUID(),
@@ -112,12 +111,11 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                             navigate('PRODUCT_EDITOR', { productId: newProduct.id, product: newProduct });
                         }}
                     >
-                        <Plus size={24} className="ml-2" />
-                        הוסף מוצר חדש
+                        <Plus size={18} className="ml-1" />
+                        מוצר חדש
                     </Button>
                     <Button
                         fullWidth
-                        size="lg"
                         variant="secondary"
                         onClick={() => {
                             const newGc: GlobalCategory = {
@@ -130,8 +128,8 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                             navigate('GLOBAL_CATEGORY_EDITOR', { globalCategoryId: newGc.id, globalCategory: newGc });
                         }}
                     >
-                        <Plus size={24} className="ml-2" />
-                        הוסף קטגוריה גלובלית
+                        <Plus size={18} className="ml-1" />
+                        קטגוריה גלובלית
                     </Button>
                 </div>
             </StickyFooter>
