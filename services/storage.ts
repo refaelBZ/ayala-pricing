@@ -16,7 +16,7 @@ import {
   onAuthStateChanged,
   User,
 } from "firebase/auth";
-import { Product, Order } from '../types';
+import { Product, Order, GlobalCategory } from '../types';
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -192,11 +192,29 @@ export const fetchProducts = async (): Promise<Product[]> => {
 };
 
 export const saveProductToFirestore = async (product: Product): Promise<void> => {
-  await setDoc(doc(db, PRODUCTS_COLLECTION, product.id), product);
+  // JSON round-trip strips undefined values, which Firestore does not accept
+  const clean = JSON.parse(JSON.stringify(product));
+  await setDoc(doc(db, PRODUCTS_COLLECTION, product.id), clean);
 };
 
 export const deleteProductFromFirestore = async (productId: string): Promise<void> => {
   await deleteDoc(doc(db, PRODUCTS_COLLECTION, productId));
+};
+
+const GLOBAL_CATEGORIES_COLLECTION = 'global_categories';
+
+export const fetchGlobalCategories = async (): Promise<GlobalCategory[]> => {
+  const snap = await getDocs(collection(db, GLOBAL_CATEGORIES_COLLECTION));
+  return snap.docs.map(d => d.data() as GlobalCategory);
+};
+
+export const saveGlobalCategoryToFirestore = async (gc: GlobalCategory): Promise<void> => {
+  const clean = JSON.parse(JSON.stringify(gc));
+  await setDoc(doc(db, GLOBAL_CATEGORIES_COLLECTION, gc.id), clean);
+};
+
+export const deleteGlobalCategoryFromFirestore = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, GLOBAL_CATEGORIES_COLLECTION, id));
 };
 
 // Strips internalNotes from the main document — stored in the private sub-collection instead.
