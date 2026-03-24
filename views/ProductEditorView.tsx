@@ -44,6 +44,8 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
     const [choicesRaw, setChoicesRaw] = useState<Record<string, string>>({});
     // tierModalIdx: which tier's spec modal is open (null = closed)
     const [tierModalIdx, setTierModalIdx] = useState<number | null>(null);
+    // tierModalDraft: staged copy of the tier's specs while the modal is open
+    const [tierModalDraft, setTierModalDraft] = useState<OptionFormInput[]>([]);
 
     const saveProduct = async () => {
         if (!editingProduct.name) { showToast('נא להזין שם מוצר'); return; }
@@ -148,6 +150,63 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
         setEditingProduct({ ...editingProduct, tiers: newTiers });
     };
 
+    // ─── Tier Modal Draft Helpers ─────────────────────────────────────────────
+    const openTierModal = (tierIdx: number) => {
+        setTierModalDraft(JSON.parse(JSON.stringify(editingProduct.tiers[tierIdx].includedSpecs || [])));
+        setTierModalIdx(tierIdx);
+    };
+
+    const updateDraftSpec = (specIdx: number, updates: Partial<OptionFormInput>) => {
+        setTierModalDraft(prev => {
+            const next = [...prev];
+            next[specIdx] = { ...next[specIdx], ...updates };
+            return next;
+        });
+    };
+
+    const addDraftSpec = () => setTierModalDraft(prev => [...prev, { count: 1, label: '' }]);
+
+    const removeDraftSpec = (specIdx: number) =>
+        setTierModalDraft(prev => prev.filter((_, i) => i !== specIdx));
+
+    const saveTierModal = () => {
+        if (tierModalIdx === null) return;
+        const newTiers = [...editingProduct.tiers];
+
+        // Apply draft to the current tier
+        if (tierModalDraft.length > 0) {
+            newTiers[tierModalIdx] = { ...newTiers[tierModalIdx], includedSpecs: tierModalDraft };
+        } else {
+            const { includedSpecs: _removed, ...rest } = newTiers[tierModalIdx];
+            newTiers[tierModalIdx] = rest;
+        }
+
+        // Propagate NEW labels to higher tiers that already have specs
+        if (tierModalDraft.length > 0) {
+            for (let t = tierModalIdx + 1; t < newTiers.length; t++) {
+                if (newTiers[t].includedSpecs?.length) {
+                    const existingLabels = new Set(newTiers[t].includedSpecs!.map(s => s.label));
+                    const toAdd = tierModalDraft.filter(s => s.label && !existingLabels.has(s.label));
+                    if (toAdd.length > 0) {
+                        newTiers[t] = {
+                            ...newTiers[t],
+                            includedSpecs: [...toAdd.map(s => ({ ...s })), ...newTiers[t].includedSpecs!]
+                        };
+                    }
+                }
+            }
+        }
+
+        setEditingProduct({ ...editingProduct, tiers: newTiers });
+        setTierModalIdx(null);
+        setTierModalDraft([]);
+    };
+
+    const cancelTierModal = () => {
+        setTierModalIdx(null);
+        setTierModalDraft([]);
+    };
+
     return (
         <div className="min-h-screen flex flex-col">
             {/* Sub-header */}
@@ -172,7 +231,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                 </div>
                                 <div className="relative shrink-0">
                                     <button
-                                        onClick={() => setTierModalIdx(tierIdx)}
+                                        onClick={() => openTierModal(tierIdx)}
                                         className="p-2 rounded-xl transition-colors duration-base text-accent-muted hover:bg-accent-ghost"
                                         title="הגדרות שדות לרמה"
                                     >
@@ -426,14 +485,23 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
             {tierModalIdx !== null && (() => {
                 const tier = editingProduct.tiers[tierModalIdx];
                 if (!tier) return null;
+                // Build a map: label → source tier name (for inherited badge display)
+                const inheritedFrom = new Map<string, string>();
+                for (let t = 0; t < tierModalIdx; t++) {
+                    editingProduct.tiers[t].includedSpecs?.forEach(s => {
+                        if (!inheritedFrom.has(s.label)) {
+                            inheritedFrom.set(s.label, editingProduct.tiers[t].name);
+                        }
+                    });
+                }
                 return (
                     <div className="fixed inset-0 z-50 flex items-end justify-center">
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setTierModalIdx(null)} />
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={cancelTierModal} />
                         <div className="relative w-full max-w-lg bg-[var(--bg-app)] rounded-t-3xl shadow-xl max-h-[80vh] flex flex-col">
                             {/* Header */}
                             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-subtle shrink-0">
                                 <h3 className="font-heading font-bold text-primary text-lg">{tier.name} — שדות פירוט</h3>
-                                <button onClick={() => setTierModalIdx(null)} className="p-2 rounded-xl text-muted hover:bg-accent-ghost transition-colors">
+                                <button onClick={cancelTierModal} className="p-2 rounded-xl text-muted hover:bg-accent-ghost transition-colors">
                                     <X size={20} />
                                 </button>
                             </div>
@@ -445,10 +513,9 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                 <label className="flex items-center gap-2 cursor-pointer text-caption text-secondary">
                                     <input
                                         type="checkbox"
-                                        checked={!!tier.includedSpecs?.length}
+                                        checked={!!tierModalDraft.length}
                                         onChange={(e) => {
                                             if (e.target.checked) {
-                                                // Auto-populate with copies of all specs from lower tiers
                                                 const inherited: OptionFormInput[] = [];
                                                 for (let t = 0; t < tierModalIdx; t++) {
                                                     editingProduct.tiers[t].includedSpecs?.forEach(s => {
@@ -457,18 +524,10 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                                         }
                                                     });
                                                 }
-                                                const newTiers = [...editingProduct.tiers];
-                                                newTiers[tierModalIdx] = {
-                                                    ...newTiers[tierModalIdx],
-                                                    includedSpecs: inherited.length > 0 ? inherited : [{ count: 1, label: '' }]
-                                                };
-                                                setEditingProduct({ ...editingProduct, tiers: newTiers });
+                                                setTierModalDraft(inherited.length > 0 ? inherited : [{ count: 1, label: '' }]);
                                             } else {
-                                                if (tier.includedSpecs?.length && !window.confirm('האם אתה בטוח שברצונך למחוק את כל השדות שהוגדרו לרמה זו?')) return;
-                                                const newTiers = [...editingProduct.tiers];
-                                                const { includedSpecs: _removed, ...rest } = newTiers[tierModalIdx];
-                                                newTiers[tierModalIdx] = rest;
-                                                setEditingProduct({ ...editingProduct, tiers: newTiers });
+                                                if (tierModalDraft.length && !window.confirm('האם אתה בטוח שברצונך למחוק את כל השדות שהוגדרו לרמה זו?')) return;
+                                                setTierModalDraft([]);
                                             }
                                         }}
                                         className="accent-[var(--color-primary)] rounded"
@@ -477,17 +536,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                     פירוט נוסף לרמה זו
                                 </label>
 
-                                {(() => {
-                                    // Build a map: label → source tier name (for inherited badge display only)
-                                    const inheritedFrom = new Map<string, string>();
-                                    for (let t = 0; t < tierModalIdx; t++) {
-                                        editingProduct.tiers[t].includedSpecs?.forEach(s => {
-                                            if (!inheritedFrom.has(s.label)) {
-                                                inheritedFrom.set(s.label, editingProduct.tiers[t].name);
-                                            }
-                                        });
-                                    }
-                                    return tier.includedSpecs?.map((spec, specIdx) => {
+                                {tierModalDraft.map((spec, specIdx) => {
                                     const sk = `tier-${tierModalIdx}-${specIdx}`;
                                     const rawKey = `tier-${tierModalIdx}-${specIdx}-choices`;
                                     const labelSuggestions = knownSuggestions.filter(s =>
@@ -508,7 +557,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                                     <label className="text-micro text-muted block mb-1">תווית</label>
                                                     <Input
                                                         value={spec.label}
-                                                        onChange={e => updateTierSpec(tierModalIdx, specIdx, { label: e.target.value })}
+                                                        onChange={e => updateDraftSpec(specIdx, { label: e.target.value })}
                                                         onFocus={() => setSuggestKey(sk)}
                                                         onBlur={() => setTimeout(() => setSuggestKey(null), 150)}
                                                         className="h-9 text-body-sm bg-accent-ghost"
@@ -517,7 +566,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                                     {suggestKey === sk && labelSuggestions.length > 0 && (
                                                         <div className="absolute top-full right-0 left-0 z-20 mt-1 bg-white border border-light rounded-xl shadow-card overflow-hidden">
                                                             {labelSuggestions.map(s => (
-                                                                <button key={s.label} onMouseDown={e => { e.preventDefault(); updateTierSpec(tierModalIdx, specIdx, { label: s.label, choices: s.choices }); setSuggestKey(null); }} className="w-full text-right px-3 py-2 text-xs hover:bg-accent-ghost transition-colors flex justify-between items-center gap-2">
+                                                                <button key={s.label} onMouseDown={e => { e.preventDefault(); updateDraftSpec(specIdx, { label: s.label, choices: s.choices }); setSuggestKey(null); }} className="w-full text-right px-3 py-2 text-xs hover:bg-accent-ghost transition-colors flex justify-between items-center gap-2">
                                                                     <span className="text-muted truncate">{s.choices.slice(0, 3).join(', ')}{s.choices.length > 3 ? '...' : ''}</span>
                                                                     <span className="font-medium text-primary shrink-0">{s.label}</span>
                                                                 </button>
@@ -527,9 +576,9 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                                 </div>
                                                 <div className="w-20">
                                                     <label className="text-micro text-muted block mb-1">כמות</label>
-                                                    <Input type="number" min={1} value={spec.count} onChange={e => updateTierSpec(tierModalIdx, specIdx, { count: Number(e.target.value) })} className="h-9 text-body-sm bg-accent-ghost text-center" />
+                                                    <Input type="number" min={1} value={spec.count} onChange={e => updateDraftSpec(specIdx, { count: Number(e.target.value) })} className="h-9 text-body-sm bg-accent-ghost text-center" />
                                                 </div>
-                                                <button onClick={() => removeTierSpec(tierModalIdx, specIdx)} className="p-2 text-accent-muted hover:text-danger-text transition-colors">
+                                                <button onClick={() => removeDraftSpec(specIdx)} className="p-2 text-accent-muted hover:text-danger-text transition-colors">
                                                     <X size={15} />
                                                 </button>
                                             </div>
@@ -545,7 +594,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                                     onBlur={() => {
                                                         const raw = choicesRaw[rawKey] ?? '';
                                                         const parsed = raw.split(',').map(s => s.trim()).filter(Boolean);
-                                                        updateTierSpec(tierModalIdx, specIdx, { choices: parsed.length ? parsed : undefined });
+                                                        updateDraftSpec(specIdx, { choices: parsed.length ? parsed : undefined });
                                                         setChoicesRaw(prev => { const next = { ...prev }; delete next[rawKey]; return next; });
                                                         setTimeout(() => setSuggestKey(null), 150);
                                                     }}
@@ -555,7 +604,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                                 {suggestKey === `choices-${sk}` && knownSuggestions.length > 0 && (
                                                     <div className="absolute top-full right-0 left-0 z-20 mt-1 bg-white border border-light rounded-xl shadow-card overflow-hidden">
                                                         {(exactMatch ? [exactMatch] : knownSuggestions).map(s => (
-                                                            <button key={s.label} onMouseDown={e => { e.preventDefault(); updateTierSpec(tierModalIdx, specIdx, { choices: s.choices }); setSuggestKey(null); }} className="w-full text-right px-3 py-2 text-xs hover:bg-accent-ghost transition-colors flex justify-between items-center gap-2">
+                                                            <button key={s.label} onMouseDown={e => { e.preventDefault(); updateDraftSpec(specIdx, { choices: s.choices }); setSuggestKey(null); }} className="w-full text-right px-3 py-2 text-xs hover:bg-accent-ghost transition-colors flex justify-between items-center gap-2">
                                                                 <span className="text-muted truncate">{s.choices.join(', ')}</span>
                                                                 <span className="font-medium text-primary shrink-0">↵ {s.label}</span>
                                                             </button>
@@ -565,21 +614,23 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                             </div>
                                         </div>
                                     );
-                                    });
-                                })()}
+                                })}
 
-                                {tier.includedSpecs?.length ? (
-                                    <button onClick={() => addTierSpec(tierModalIdx)} className="text-caption text-accent font-bold flex items-center gap-1 hover:bg-accent-ghost px-3 py-2 rounded-lg transition-colors duration-base">
+                                {tierModalDraft.length > 0 && (
+                                    <button onClick={addDraftSpec} className="text-caption text-accent font-bold flex items-center gap-1 hover:bg-accent-ghost px-3 py-2 rounded-lg transition-colors duration-base">
                                         <Plus size={13} />
                                         הוסף שדה לרמה
                                     </button>
-                                ) : null}
+                                )}
                             </div>
                             {/* Footer */}
-                            <div className="px-6 pb-6 pt-3 border-t border-subtle shrink-0">
-                                <Button fullWidth onClick={() => setTierModalIdx(null)}>
+                            <div className="px-6 pb-6 pt-3 border-t border-subtle shrink-0 flex gap-3">
+                                <Button fullWidth variant="secondary" onClick={cancelTierModal}>
+                                    בטל
+                                </Button>
+                                <Button fullWidth onClick={saveTierModal}>
                                     <Check size={16} className="ml-1" />
-                                    סגור
+                                    שמור
                                 </Button>
                             </div>
                         </div>
