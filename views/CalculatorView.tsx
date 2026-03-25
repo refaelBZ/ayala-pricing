@@ -1,12 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Copy, ChevronRight, Check } from 'lucide-react';
-import { InputRequest, OrderItem } from '../types';
+import { FormField, InputRequest, OrderItem, Product } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
 import { SubHeader } from '../components/SubHeader';
 import { SectionHeader } from '../components/SectionHeader';
+import { LinkedProductModal } from '../components/LinkedProductModal';
 
 type Props = Pick<AppState, 'data' | 'selectedProductId' | 'selections' | 'setSelections' | 'navigate' | 'setPendingOrder' | 'setDynamicDetails' | 'showToast'>;
+
+// ─── Helper: compute effective tier fields (cumulative + overrides) ────────────
+function buildEffectiveFields(product: Product, maxTierIdx: number): { field: FormField; effectiveCount: number }[] {
+    const fields = new Map<string, { field: FormField; effectiveCount: number }>();
+
+    for (let i = 0; i <= maxTierIdx; i++) {
+        (product.tiers[i].inheritedFields || []).forEach(f => {
+            fields.set(f.id, { field: f, effectiveCount: f.count });
+        });
+    }
+
+    for (let i = 0; i <= maxTierIdx; i++) {
+        const overrides = product.tiers[i].overrides;
+        if (overrides) {
+            Object.entries(overrides).forEach(([fieldId, count]) => {
+                const entry = fields.get(fieldId);
+                if (entry) fields.set(fieldId, { ...entry, effectiveCount: count });
+            });
+        }
+    }
+
+    return Array.from(fields.values());
+}
 
 export const CalculatorView: React.FC<Props> = ({
     data, selectedProductId, selections, setSelections, navigate, setPendingOrder, setDynamicDetails, showToast
@@ -14,32 +38,172 @@ export const CalculatorView: React.FC<Props> = ({
     const product = data.products.find(p => p.id === selectedProductId);
     if (!product) return null;
 
-    // --- Dynamic Tier Linking Logic ---
+    // ─── Linked-product modal queue ───────────────────────────────────────────
+    const [linkedProductQueue, setLinkedProductQueue] = useState<string[]>([]);
+    const [pendingMainItem, setPendingMainItem] = useState<OrderItem | null>(null);
+    const [collectedLinkedItems, setCollectedLinkedItems] = useState<OrderItem[]>([]);
+
+    const activeLinkedProductId = linkedProductQueue[0] ?? null;
+    const activeLinkedProduct = activeLinkedProductId
+        ? data.products.find(p => p.id === activeLinkedProductId) ?? null
+        : null;
+
+    // ─── Merge product + applicable global categories ─────────────────────────
+    const applicableGlobalCats = data.globalCategories.filter(
+        gc => gc.targetProductIds.includes(selectedProductId!)
+    );
+    const allCategories = [...product.categories, ...applicableGlobalCats];
+
+    // ─── Price calculation ────────────────────────────────────────────────────
     let total = 0;
     const resolvedPrices: number[] = [];
     const detailsList: string[] = [];
+    const manualPrices: number[] = [];
 
-    product.categories.forEach(cat => {
+    allCategories.forEach(cat => {
         const selectionId = selections[cat.id];
         if (!selectionId) return;
         const idsToCheck = Array.isArray(selectionId) ? selectionId : [selectionId];
         idsToCheck.forEach(id => {
             const opt = cat.options.find(o => o.id === id);
             if (opt) {
-                let price = 0;
                 if (opt.linkTier === -1) {
-                    price = opt.manualPrice || 0;
+                    manualPrices.push(opt.manualPrice || 0);
                 } else if (opt.linkTier >= 0 && opt.linkTier < product.tiers.length) {
-                    price = product.tiers[opt.linkTier].price;
+                    resolvedPrices.push(product.tiers[opt.linkTier].price);
                 }
-                resolvedPrices.push(price);
                 detailsList.push(opt.name);
             }
         });
     });
 
-    total = resolvedPrices.length > 0 ? Math.max(...resolvedPrices) : 0;
+    const basePrice = resolvedPrices.length > 0 ? Math.max(...resolvedPrices) : 0;
+    const addonsTotal = manualPrices.reduce((sum, p) => sum + p, 0);
+    total = basePrice + addonsTotal;
 
+    // ─── Build main OrderItem + input requests ────────────────────────────────
+    const buildMainItem = (): { item: OrderItem; linkedProductIds: string[] } => {
+        const inputRequests: InputRequest[] = [];
+        let maxTierIdx = -1;
+        let maxTierPrice = -1;
+        const linkedProductIds: string[] = [];
+
+        allCategories.forEach(cat => {
+            const selection = selections[cat.id];
+            if (!selection) return;
+            const ids = Array.isArray(selection) ? selection : [selection];
+            ids.forEach(id => {
+                const opt = cat.options.find(o => o.id === id);
+                if (opt) {
+                    if (opt.linkTier >= 0 && opt.linkTier < product.tiers.length) {
+                        const tierPrice = product.tiers[opt.linkTier].price;
+                        if (tierPrice > maxTierPrice) {
+                            maxTierPrice = tierPrice;
+                            maxTierIdx = opt.linkTier;
+                        }
+                    }
+                    if (opt.linkedProductId && !linkedProductIds.includes(opt.linkedProductId)) {
+                        linkedProductIds.push(opt.linkedProductId);
+                    }
+                }
+            });
+        });
+
+        // 1. Base fields (always appear)
+        (product.baseFields || []).forEach((field, idx) => {
+            inputRequests.push({
+                id: `base-${idx}`,
+                sourceName: product.name,
+                field
+            });
+        });
+
+        // 2. Effective tier fields (cumulative inherited + overrides)
+        if (maxTierIdx >= 0) {
+            const effectiveFields = buildEffectiveFields(product, maxTierIdx);
+            effectiveFields.forEach(({ field, effectiveCount }) => {
+                inputRequests.push({
+                    id: `tier-field-${field.id}`,
+                    sourceName: product.tiers[maxTierIdx].name,
+                    field,
+                    effectiveCount
+                });
+            });
+        }
+
+        // 3. Triggered fields from selected options
+        allCategories.forEach(cat => {
+            const selection = selections[cat.id];
+            if (!selection) return;
+            const ids = Array.isArray(selection) ? selection : [selection];
+            ids.forEach(id => {
+                const opt = cat.options.find(o => o.id === id);
+                if (opt?.triggeredFields?.length) {
+                    opt.triggeredFields.forEach((field, specIdx) => {
+                        inputRequests.push({
+                            id: `${opt.id}_${specIdx}`,
+                            sourceName: opt.name,
+                            field
+                        });
+                    });
+                }
+            });
+        });
+
+        const item: OrderItem = {
+            productId: product.id,
+            productName: product.name,
+            price: total,
+            quantity: 1,
+            details: detailsList.join('\n'),
+            _inputRequests: inputRequests
+        };
+
+        return { item, linkedProductIds };
+    };
+
+    // ─── Continue button ──────────────────────────────────────────────────────
+    const handleContinue = () => {
+        const { item, linkedProductIds } = buildMainItem();
+
+        if (linkedProductIds.length > 0) {
+            setPendingMainItem(item);
+            setCollectedLinkedItems([]);
+            setLinkedProductQueue(linkedProductIds);
+        } else {
+            setPendingOrder({ items: [item], totalPrice: total });
+            setDynamicDetails({});
+            navigate('ORDER_FORM');
+        }
+    };
+
+    // ─── Modal handlers ───────────────────────────────────────────────────────
+    const handleLinkedConfirm = (linkedItem: OrderItem) => {
+        const newLinked = [...collectedLinkedItems, linkedItem];
+        const remainingQueue = linkedProductQueue.slice(1);
+
+        if (remainingQueue.length === 0) {
+            const allItems = [pendingMainItem!, ...newLinked];
+            const totalPrice = allItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
+            setPendingOrder({ items: allItems, totalPrice });
+            setDynamicDetails({});
+            setLinkedProductQueue([]);
+            setPendingMainItem(null);
+            setCollectedLinkedItems([]);
+            navigate('ORDER_FORM');
+        } else {
+            setCollectedLinkedItems(newLinked);
+            setLinkedProductQueue(remainingQueue);
+        }
+    };
+
+    const handleLinkedCancel = () => {
+        setLinkedProductQueue([]);
+        setPendingMainItem(null);
+        setCollectedLinkedItems([]);
+    };
+
+    // ─── Copy handler ─────────────────────────────────────────────────────────
     const handleCopy = () => {
         let text = product.messageTemplate;
         text = text.replace('{details}', detailsList.join('\n'));
@@ -49,12 +213,10 @@ export const CalculatorView: React.FC<Props> = ({
 
     return (
         <div className="min-h-screen flex flex-col">
-            {/* Sub-header */}
             <SubHeader title={product.name} onBack={() => navigate('HOME')} />
 
-            {/* Content */}
             <div className="p-6 pb-40 space-y-8 overflow-y-auto">
-                {product.categories.map(cat => (
+                {allCategories.map(cat => (
                     <div key={cat.id} className="space-y-4">
                         <SectionHeader size="lg">
                             <div className="w-1.5 h-1.5 rounded-full bg-accent-soft"></div>
@@ -74,8 +236,13 @@ export const CalculatorView: React.FC<Props> = ({
                                                 : 'bg-white/60 hover:bg-white shadow-sm ring-1 ring-transparent hover:ring-accent-ghost'
                                                 }`}
                                         >
-                                            <span className={`font-medium text-body-lg ${isSelected ? 'text-primary' : 'text-secondary'}`}>{opt.name}</span>
-                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-base ${isSelected ? 'border-accent-soft bg-accent-soft' : 'border-default bg-transparent'}`}>
+                                            <div className="flex-1 text-right">
+                                                <span className={`font-medium text-body-lg ${isSelected ? 'text-primary' : 'text-secondary'}`}>{opt.name}</span>
+                                                {opt.linkedProductId && (
+                                                    <span className="block text-micro text-accent mt-0.5">+ תוספת נפרדת</span>
+                                                )}
+                                            </div>
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-base ms-3 shrink-0 ${isSelected ? 'border-accent-soft bg-accent-soft' : 'border-default bg-transparent'}`}>
                                                 {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                                             </div>
                                         </button>
@@ -101,8 +268,13 @@ export const CalculatorView: React.FC<Props> = ({
                                                 : 'bg-white/60 hover:bg-white shadow-sm'
                                                 }`}
                                         >
-                                            <span className={`font-medium ${isSelected ? 'text-primary' : 'text-secondary'}`}>{opt.name}</span>
-                                            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-base ${isSelected ? 'bg-accent-soft border-accent-soft' : 'border-default'}`}>
+                                            <div className="flex-1 text-right">
+                                                <span className={`font-medium ${isSelected ? 'text-primary' : 'text-secondary'}`}>{opt.name}</span>
+                                                {opt.linkedProductId && (
+                                                    <span className="block text-micro text-accent mt-0.5">+ תוספת נפרדת</span>
+                                                )}
+                                            </div>
+                                            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-base ms-3 shrink-0 ${isSelected ? 'bg-accent-soft border-accent-soft' : 'border-default'}`}>
                                                 {isSelected && <Check size={14} className="text-white" />}
                                             </div>
                                         </div>
@@ -128,70 +300,7 @@ export const CalculatorView: React.FC<Props> = ({
                         </Button>
                         <Button
                             variant="primary"
-                            onClick={() => {
-                                const inputRequests: InputRequest[] = [];
-                                let maxTierIdx = -1;
-                                let maxTierPrice = -1;
-
-                                // 1. Scan selections to find Max Tier (highest price linked tier)
-                                product.categories.forEach(cat => {
-                                    const selection = selections[cat.id];
-                                    if (!selection) return;
-                                    const ids = Array.isArray(selection) ? selection : [selection];
-                                    ids.forEach(id => {
-                                        const opt = cat.options.find(o => o.id === id);
-                                        if (opt && opt.linkTier >= 0 && opt.linkTier < product.tiers.length) {
-                                            const tierPrice = product.tiers[opt.linkTier].price;
-                                            if (tierPrice > maxTierPrice) {
-                                                maxTierPrice = tierPrice;
-                                                maxTierIdx = opt.linkTier;
-                                            }
-                                        }
-                                    });
-                                });
-
-                                // 2. Add Tier Specs if applicable
-                                if (maxTierIdx >= 0) {
-                                    const tier = product.tiers[maxTierIdx];
-                                    if (tier.includedSpecs) {
-                                        tier.includedSpecs.forEach((spec, idx) => {
-                                            inputRequests.push({
-                                                id: `tier-${maxTierIdx}-${idx}`,
-                                                sourceName: `רמת ${tier.name}`, // "Level Classic"
-                                                specs: spec
-                                            });
-                                        });
-                                    }
-                                }
-
-                                // 3. Add Option Specs
-                                product.categories.forEach(cat => {
-                                    const selection = selections[cat.id];
-                                    if (!selection) return;
-                                    const ids = Array.isArray(selection) ? selection : [selection];
-                                    ids.forEach(id => {
-                                        const opt = cat.options.find(o => o.id === id);
-                                        if (opt && opt.formInputs) {
-                                            inputRequests.push({
-                                                id: opt.id,
-                                                sourceName: opt.name,
-                                                specs: opt.formInputs
-                                            });
-                                        }
-                                    });
-                                });
-
-                                const items: OrderItem[] = [{
-                                    productId: product.id,
-                                    productName: product.name,
-                                    price: total,
-                                    details: detailsList.join('\n'),
-                                    _inputRequests: inputRequests
-                                }];
-                                setPendingOrder({ items, totalPrice: total });
-                                setDynamicDetails({});
-                                navigate('ORDER_FORM');
-                            }}
+                            onClick={handleContinue}
                             className="px-6 h-14 rounded-2xl text-lg font-bold tracking-wide shadow-primary-glow"
                         >
                             <span>המשך</span>
@@ -200,6 +309,15 @@ export const CalculatorView: React.FC<Props> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Linked Product Modal */}
+            {activeLinkedProduct && (
+                <LinkedProductModal
+                    product={activeLinkedProduct}
+                    onConfirm={handleLinkedConfirm}
+                    onCancel={handleLinkedCancel}
+                />
+            )}
         </div>
     );
 };

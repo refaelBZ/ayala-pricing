@@ -1,6 +1,22 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, addDoc } from "firebase/firestore";
-import { Product, Order } from '../types';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  setDoc,
+  deleteDoc,
+  addDoc,
+} from "firebase/firestore";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  User,
+} from "firebase/auth";
+import { Product, Order, GlobalCategory, GlobalDictionary } from '../types';
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -16,7 +32,21 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+export const auth = getAuth(app);
+
 const PRODUCTS_COLLECTION = 'products';
+const GLOBAL_CATEGORIES_COLLECTION = 'global_categories';
+const GLOBAL_DICTIONARIES_COLLECTION = 'global_dictionaries';
+
+// --- Auth helpers ---
+
+export const loginAdmin = (email: string, password: string) =>
+  signInWithEmailAndPassword(auth, email, password);
+
+export const logoutAdmin = () => firebaseSignOut(auth);
+
+export { onAuthStateChanged };
+export type { User };
 
 // --- Default Data for Seeding ---
 const DEFAULT_PRODUCTS: Product[] = [
@@ -24,9 +54,9 @@ const DEFAULT_PRODUCTS: Product[] = [
     id: "bento_cake",
     name: "עוגת בנטו (Bento)",
     tiers: [
-      { name: "Classic", price: 180 },
-      { name: "Plus", price: 210 },
-      { name: "Extra", price: 290 }
+      { name: "Classic", price: 180, inheritedFields: [] },
+      { name: "Plus", price: 210, inheritedFields: [] },
+      { name: "Extra", price: 290, inheritedFields: [] }
     ],
     messageTemplate: "היי! הצעת מחיר לעוגת בנטו:\n{details}\nסה\"כ: {price} ₪\nאני זמינה לכל שאלה ❤️",
     categories: [
@@ -66,9 +96,9 @@ const DEFAULT_PRODUCTS: Product[] = [
     id: "designed_cake",
     name: "עוגות מעוצבות (Designed)",
     tiers: [
-      { name: "Mini", price: 450 },
-      { name: "Classic", price: 520 },
-      { name: "Extra", price: 700 }
+      { name: "Mini", price: 450, inheritedFields: [] },
+      { name: "Classic", price: 520, inheritedFields: [] },
+      { name: "Extra", price: 700, inheritedFields: [] }
     ],
     messageTemplate: "היי, הנה פרטי העוגה המעוצבת שבחרנו:\n{details}\nסה\"כ לתשלום: {price} ₪",
     categories: [
@@ -106,9 +136,9 @@ const DEFAULT_PRODUCTS: Product[] = [
     id: "workshop",
     name: "סדנאות (מחיר למשתתפת)",
     tiers: [
-      { name: "Basic", price: 215 },
-      { name: "Classic", price: 260 },
-      { name: "Premium", price: 320 }
+      { name: "Basic", price: 215, inheritedFields: [] },
+      { name: "Classic", price: 260, inheritedFields: [] },
+      { name: "Premium", price: 320, inheritedFields: [] }
     ],
     messageTemplate: "פרטים על הסדנה:\n{details}\nמחיר למשתתפת (כולל מע\"מ): {price} ₪\n*מינימום משתתפות בהתאם לחבילה*",
     categories: [
@@ -140,6 +170,8 @@ export const generateUUID = () => {
   return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
+// ─── Products ─────────────────────────────────────────────────────────────────
+
 export const fetchProducts = async (): Promise<Product[]> => {
   try {
     const querySnapshot = await getDocs(collection(db, PRODUCTS_COLLECTION));
@@ -159,45 +191,109 @@ export const fetchProducts = async (): Promise<Product[]> => {
     return products;
   } catch (error) {
     console.error("Error fetching products:", error);
-    // Return empty array on error, app handles fallback visually
     return [];
   }
 };
 
 export const saveProductToFirestore = async (product: Product): Promise<void> => {
-  // Uses setDoc to overwrite if exists (update) or create if new
-  await setDoc(doc(db, PRODUCTS_COLLECTION, product.id), product);
+  // JSON round-trip strips undefined values, which Firestore does not accept
+  const clean = JSON.parse(JSON.stringify(product));
+  await setDoc(doc(db, PRODUCTS_COLLECTION, product.id), clean);
 };
 
 export const deleteProductFromFirestore = async (productId: string): Promise<void> => {
   await deleteDoc(doc(db, PRODUCTS_COLLECTION, productId));
 };
 
+// ─── Global Categories ────────────────────────────────────────────────────────
+
+export const fetchGlobalCategories = async (): Promise<GlobalCategory[]> => {
+  const snap = await getDocs(collection(db, GLOBAL_CATEGORIES_COLLECTION));
+  return snap.docs.map(d => d.data() as GlobalCategory);
+};
+
+export const saveGlobalCategoryToFirestore = async (gc: GlobalCategory): Promise<void> => {
+  const clean = JSON.parse(JSON.stringify(gc));
+  await setDoc(doc(db, GLOBAL_CATEGORIES_COLLECTION, gc.id), clean);
+};
+
+export const deleteGlobalCategoryFromFirestore = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, GLOBAL_CATEGORIES_COLLECTION, id));
+};
+
+// ─── Global Dictionaries ──────────────────────────────────────────────────────
+
+export const fetchGlobalDictionaries = async (): Promise<GlobalDictionary[]> => {
+  const snap = await getDocs(collection(db, GLOBAL_DICTIONARIES_COLLECTION));
+  return snap.docs.map(d => d.data() as GlobalDictionary);
+};
+
+export const saveGlobalDictionaryToFirestore = async (dict: GlobalDictionary): Promise<void> => {
+  const clean = JSON.parse(JSON.stringify(dict));
+  await setDoc(doc(db, GLOBAL_DICTIONARIES_COLLECTION, dict.id), clean);
+};
+
+export const deleteGlobalDictionaryFromFirestore = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, GLOBAL_DICTIONARIES_COLLECTION, id));
+};
+
+// ─── Orders ───────────────────────────────────────────────────────────────────
+
+// Strips internalNotes from the main document — stored in the private sub-collection instead.
+const toPublicOrderDoc = (order: Order): Omit<Order, 'internalNotes'> => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { internalNotes: _notes, ...publicFields } = order;
+  return publicFields;
+};
+
 export const saveOrderToFirestore = async (order: Order): Promise<void> => {
   const ordersCollection = collection(db, 'orders');
 
-  // Ensure creation date is set
   if (!order.createdAt) {
     order.createdAt = new Date().toISOString();
   }
 
-  // If the order has an ID, use it (for updates), otherwise let Firestore generate one or use our generated one
+  const publicDoc = toPublicOrderDoc(order);
+
   if (order.id) {
-    await setDoc(doc(ordersCollection, order.id), order);
+    const orderRef = doc(ordersCollection, order.id);
+    await setDoc(orderRef, publicDoc);
+    await setDoc(doc(orderRef, 'private', 'data'), { internalNotes: order.internalNotes ?? '' });
   } else {
-    await addDoc(ordersCollection, order);
+    const newRef = await addDoc(ordersCollection, publicDoc);
+    await setDoc(doc(newRef, 'private', 'data'), { internalNotes: order.internalNotes ?? '' });
   }
 };
 
 export const fetchOrders = async (): Promise<Order[]> => {
   const querySnapshot = await getDocs(collection(db, 'orders'));
   const orders: Order[] = [];
-  querySnapshot.forEach((doc) => {
-    orders.push(doc.data() as Order);
-  });
+
+  await Promise.all(
+    querySnapshot.docs.map(async (orderDoc) => {
+      const order = orderDoc.data() as Order;
+      try {
+        const privateSnap = await getDoc(doc(db, 'orders', orderDoc.id, 'private', 'data'));
+        if (privateSnap.exists()) {
+          order.internalNotes = (privateSnap.data() as { internalNotes: string }).internalNotes;
+        }
+      } catch {
+        // Private doc missing — not fatal
+      }
+      orders.push(order);
+    })
+  );
+
   return orders;
 };
 
+export const fetchOrderById = async (orderId: string): Promise<Order | null> => {
+  const snap = await getDoc(doc(db, 'orders', orderId));
+  if (!snap.exists()) return null;
+  return snap.data() as Order;
+};
+
 export const deleteOrderFromFirestore = async (orderId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'orders', orderId, 'private', 'data'));
   await deleteDoc(doc(db, 'orders', orderId));
 };
