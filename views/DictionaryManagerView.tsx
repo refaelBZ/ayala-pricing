@@ -125,12 +125,10 @@ export const DictionaryManagerView: React.FC<Props> = ({ data, navigate, setLoad
                 <StickyFooter>
                     <div className="flex gap-3">
                         <Button variant="secondary" fullWidth onClick={cancelEdit}>
-                            <X size={16} className="ml-1" />
-                            בטל
+                            בטל<X size={16} />
                         </Button>
                         <Button fullWidth onClick={saveDraft} disabled={!draft.name.trim()}>
-                            <Check size={16} className="ml-1" />
-                            שמור
+                            שמור<Check size={16} />
                         </Button>
                     </div>
                 </StickyFooter>
@@ -193,8 +191,7 @@ export const DictionaryManagerView: React.FC<Props> = ({ data, navigate, setLoad
 
             <StickyFooter>
                 <Button fullWidth onClick={startNew}>
-                    <Plus size={18} className="ml-1" />
-                    מאגר מאפיינים חדש
+                    מאגר מאפיינים חדש<Plus size={18} />
                 </Button>
             </StickyFooter>
         </div>

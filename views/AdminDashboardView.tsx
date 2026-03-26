@@ -141,8 +141,7 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                             navigate('PRODUCT_EDITOR', { productId: newProduct.id, product: newProduct });
                         }}
                     >
-                        <Plus size={18} className="ml-1" />
-                        מוצר חדש
+                        מוצר חדש<Plus size={18} />
                     </Button>
                     <Button
                         fullWidth
@@ -158,8 +157,7 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                             navigate('GLOBAL_CATEGORY_EDITOR', { globalCategoryId: newGc.id, globalCategory: newGc });
                         }}
                     >
-                        <Plus size={18} className="ml-1" />
-                        קטגוריה גלובלית
+                        קטגוריה גלובלית<Plus size={18} />
                     </Button>
                 </div>
             </StickyFooter>

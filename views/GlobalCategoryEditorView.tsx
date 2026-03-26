@@ -69,7 +69,7 @@ export const GlobalCategoryEditorView: React.FC<Props> = ({ data, editingGlobalC
 
     return (
         <div className="min-h-screen flex flex-col">
-            <SubHeader title="עריכת קטגוריה גלובלית" onBack={() => navigate('ADMIN_DASHBOARD')} backIcon="close" />
+            <SubHeader title="עריכת קטגוריה גלובלית" />
 
             <div className="p-6 space-y-8 pb-32 overflow-y-auto">
                 {/* Category Name + Type */}
@@ -79,6 +79,7 @@ export const GlobalCategoryEditorView: React.FC<Props> = ({ data, editingGlobalC
                         value={editingGlobalCategory.name}
                         onChange={e => setEditingGlobalCategory({ ...editingGlobalCategory, name: e.target.value })}
                         placeholder="לדוגמה: משלוח, הערות אלרגנים"
+                        className="font-bold !text-lg sm:!text-2xl"
                     />
                     <div>
                         <label className="block text-body-sm font-medium text-secondary mb-2">סוג בחירה</label>
@@ -188,15 +189,20 @@ export const GlobalCategoryEditorView: React.FC<Props> = ({ data, editingGlobalC
                     ))}
 
                     <button onClick={addOption} className="w-full py-3 border border-dashed border-default rounded-xl text-accent-soft font-medium hover:bg-accent-ghost transition-all duration-base flex items-center justify-center gap-2 text-body-sm">
-                        <Plus size={16} />הוסף אפשרות
+                        {editingGlobalCategory.name ? `הוסף אפשרות לקטגוריית ${editingGlobalCategory.name}` : 'הוסף אפשרות'}<Plus size={16} />
                     </button>
                 </section>
             </div>
 
             <StickyFooter>
-                <Button fullWidth size="lg" onClick={save} disabled={!editingGlobalCategory.name}>
-                    <Check className="ml-2" />שמור שינויים
-                </Button>
+                <div className="flex gap-3">
+                    <Button variant="secondary" fullWidth size="lg" onClick={() => navigate('ADMIN_DASHBOARD')}>
+                        ביטול שינויים
+                    </Button>
+                    <Button fullWidth size="lg" onClick={save} disabled={!editingGlobalCategory.name}>
+                        שמור שינויים<Check />
+                    </Button>
+                </div>
             </StickyFooter>
         </div>
     );

@@ -96,20 +96,20 @@ const FormFieldEditor: React.FC<FormFieldEditorProps> = ({
                     <X size={15} />
                 </button>
             </div>
-            <div className="flex gap-2 items-center">
-                <BaseSelect className="h-8 text-xs flex-1" value={field.type} onChange={e => onChange({ ...field, type: e.target.value as 'text' | 'dictionary', dictionaryId: undefined })}>
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <BaseSelect className="h-8 text-xs w-full sm:flex-1" value={field.type} onChange={e => onChange({ ...field, type: e.target.value as 'text' | 'dictionary', dictionaryId: undefined })}>
                     <option value="text">טקסט חופשי</option>
                     <option value="dictionary">מאפיינים (רשימה)</option>
                 </BaseSelect>
                 {field.type === 'dictionary' && (
-                    <BaseSelect className="h-8 text-xs flex-1" value={field.dictionaryId || ''} onChange={e => onChange({ ...field, dictionaryId: e.target.value || undefined })}>
+                    <BaseSelect className="h-8 text-xs w-full sm:flex-1" value={field.dictionaryId || ''} onChange={e => onChange({ ...field, dictionaryId: e.target.value || undefined })}>
                         <option value="">בחר מאגר...</option>
                         {globalDictionaries.map(d => (
                             <option key={d.id} value={d.id}>{d.name}</option>
                         ))}
                     </BaseSelect>
                 )}
-                <label className="flex items-center gap-1.5 text-micro text-muted cursor-pointer shrink-0">
+                <label className="flex items-center gap-1.5 text-micro text-muted cursor-pointer shrink-0 py-1 sm:py-0">
                     <input type="checkbox" checked={field.isRequired} onChange={e => onChange({ ...field, isRequired: e.target.checked })} className="accent-[var(--color-primary)] rounded" />
                     חובה
                 </label>
@@ -224,7 +224,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
 
     return (
         <div className="min-h-screen flex flex-col">
-            <SubHeader title="עריכת מוצר" onBack={() => navigate('ADMIN_DASHBOARD')} backIcon="close" />
+            <SubHeader title="עריכת מוצר" />
 
             <div className="p-6 space-y-8 pb-32 overflow-y-auto">
 
@@ -296,12 +296,12 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                         </div>
 
                                         {inherited.length > 0 && (
-                                            <div>
+                                            <div className="bg-gray-50 p-4 rounded-2xl">
                                                 <label className="block text-caption text-muted mb-2 font-medium">שדות בירושה מרמות קודמות</label>
                                                 <div className="space-y-2">
                                                     {inherited.map(({ field, fromTierName }) => (
                                                         <FormFieldEditor
-                                                            key={field.id} field={field} onChange={() => {}} onRemove={() => {}}
+                                                            key={field.id} field={field} onChange={() => { }} onRemove={() => { }}
                                                             globalDictionaries={globalDictionaries}
                                                             isInherited inheritedFromTier={fromTierName}
                                                             overriddenCount={tier.overrides?.[field.id]}
@@ -313,7 +313,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                             </div>
                                         )}
 
-                                        <div>
+                                        <div className="bg-gray-50 p-4 rounded-2xl">
                                             <div className="flex items-center justify-between mb-2">
                                                 <label className="block text-caption text-muted font-medium">שדות שמוצגים החל מרמה זו</label>
                                                 <button onClick={() => addTierField(ti)} className="text-caption text-accent font-bold flex items-center gap-1 hover:bg-accent-ghost px-2 py-1 rounded-lg transition-colors">
@@ -346,7 +346,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                 <Input
                                     placeholder="שם הקטגוריה" value={cat.name}
                                     onChange={e => updateCategory(ci, { name: e.target.value })}
-                                    className="font-bold text-lg border-transparent focus:border-focus bg-transparent px-2"
+                                    className="font-bold !text-lg sm:!text-2xl border-transparent focus:border-focus bg-transparent px-2"
                                 />
                                 <div className="flex gap-4 mt-2 mr-2">
                                     <label className="flex items-center gap-2 cursor-pointer">
@@ -362,7 +362,7 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
 
                             <div className="space-y-3">
                                 {cat.options.map((opt, oi) => (
-                                    <div key={opt.id} className="bg-accent-surface p-3 rounded-2xl border border-light/50">
+                                    <div key={opt.id} className="bg-gray-50 p-5 pt-10 pb-10 rounded-2xl border border-light/50">
                                         <div className="flex gap-2 items-center mb-2">
                                             <Input placeholder="שם האפשרות" value={opt.name} onChange={e => updateOption(ci, oi, { name: e.target.value })} className="h-10 text-body-sm bg-white" />
                                             <button onClick={() => removeOption(ci, oi)} className="text-accent-muted hover:text-danger-text p-2 transition-colors"><X size={16} /></button>
@@ -419,22 +419,27 @@ export const ProductEditorView: React.FC<Props> = ({ data, editingProduct, setEd
                                     </div>
                                 ))}
                                 <button onClick={() => addOption(ci)} className="w-full py-3 border border-dashed border-default rounded-xl text-accent-soft font-medium hover:bg-accent-ghost transition-all duration-base flex items-center justify-center gap-2 text-body-sm mt-2">
-                                    <Plus size={16} />הוסף אפשרות
+                                    {cat.name ? `הוסף אפשרות לקטגוריית ${cat.name}` : 'הוסף אפשרות'}<Plus size={16} />
                                 </button>
                             </div>
                         </BaseCard>
                     ))}
 
-                    <Button variant="secondary" fullWidth onClick={addCategory} className="border-dashed border-2 bg-transparent">
-                        <Plus size={20} className="ml-2" />הוסף קטגוריה חדשה
+                    <Button variant="secondary" fullWidth onClick={addCategory} className="!mt-12 border-dashed border-2 bg-transparent">
+                        הוסף קטגוריה חדשה<Plus size={20} />
                     </Button>
                 </section>
             </div>
 
             <StickyFooter>
-                <Button fullWidth size="lg" onClick={saveProduct} disabled={!editingProduct.name}>
-                    <Check className="ml-2" />שמור שינויים
-                </Button>
+                <div className="flex gap-3">
+                    <Button variant="secondary" fullWidth size="lg" onClick={() => navigate('ADMIN_DASHBOARD')}>
+                        ביטול שינויים
+                    </Button>
+                    <Button fullWidth size="lg" onClick={saveProduct} disabled={!editingProduct.name}>
+                        שמור שינויים<Check />
+                    </Button>
+                </div>
             </StickyFooter>
         </div>
     );
