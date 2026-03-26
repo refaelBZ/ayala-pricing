@@ -99,10 +99,10 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
             </div>
 
             {/* Global Dictionaries */}
-            <h2 className="text-xl font-bold mt-10 mb-4">מילונים גלובליים</h2>
+            <h2 className="text-xl font-bold mt-10 mb-4">מאגרי מאפיינים גלובליים</h2>
             <div className="space-y-3">
                 {data.globalDictionaries.length === 0 ? (
-                    <p className="text-caption text-muted">אין מילונים — צור מילון ראשון כדי לשתף רשימות אפשרויות בין שדות.</p>
+                    <p className="text-caption text-muted">אין מאגרי מאפיינים — צור מאגר ראשון כדי לשתף רשימות אפשרויות בין שדות.</p>
                 ) : (
                     data.globalDictionaries.map(dict => (
                         <BaseCard key={dict.id} variant="outlined" className="flex items-center justify-between">
@@ -118,7 +118,7 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                     className="w-full py-3 border border-dashed border-default rounded-xl text-accent font-medium hover:bg-accent-ghost transition-all duration-base flex items-center justify-center gap-2 text-body-sm"
                 >
                     <BookOpen size={16} />
-                    נהל מילונים גלובליים
+                    נהל מאגרי מאפיינים גלובליים
                 </button>
             </div>
 

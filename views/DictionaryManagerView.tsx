@@ -44,7 +44,7 @@ export const DictionaryManagerView: React.FC<Props> = ({ data, navigate, setLoad
 
     const saveDraft = async () => {
         if (!draft) return;
-        if (!draft.name.trim()) { showToast('נא להזין שם למילון'); return; }
+        if (!draft.name.trim()) { showToast('נא להזין שם למאגר'); return; }
         const choices = choicesRaw.split(',').map(s => s.trim()).filter(Boolean);
         if (choices.length === 0) { showToast('נא להזין לפחות אפשרות אחת'); return; }
 
@@ -53,25 +53,25 @@ export const DictionaryManagerView: React.FC<Props> = ({ data, navigate, setLoad
             await saveGlobalDictionaryToFirestore({ ...draft, choices });
             await loadData();
             cancelEdit();
-            showToast('המילון נשמר בהצלחה');
+            showToast('המאגר נשמר בהצלחה');
         } catch (e) {
             console.error(e);
-            showToast('שגיאה בשמירת המילון — בדוק הרשאות Firestore');
+            showToast('שגיאה בשמירת המאגר — בדוק הרשאות Firestore');
         } finally {
             setLoading(false);
         }
     };
 
     const deleteDictionary = async (id: string) => {
-        if (!window.confirm('למחוק מילון זה? שדות המשתמשים בו לא ישפיעו מיידית.')) return;
+        if (!window.confirm('למחוק מאגר זה? שדות המשתמשים בו לא ישפיעו מיידית.')) return;
         setLoading(true);
         try {
             await deleteGlobalDictionaryFromFirestore(id);
             await loadData();
-            showToast('המילון נמחק');
+            showToast('המאגר נמחק');
         } catch (e) {
             console.error(e);
-            showToast('שגיאה במחיקת המילון — בדוק הרשאות Firestore');
+            showToast('שגיאה במחיקת המאגר — בדוק הרשאות Firestore');
         } finally {
             setLoading(false);
         }
@@ -84,16 +84,16 @@ export const DictionaryManagerView: React.FC<Props> = ({ data, navigate, setLoad
         return (
             <div className="min-h-screen flex flex-col">
                 <SubHeader
-                    title={editingId === 'new' ? 'מילון חדש' : 'עריכת מילון'}
+                    title={editingId === 'new' ? 'מאגר מאפיינים חדש' : 'עריכת מאגר מאפיינים'}
                     onBack={cancelEdit}
                     backIcon="close"
                 />
                 <div className="p-6 space-y-6 pb-32">
                     <BaseCard variant="outlined" className="space-y-4 !p-6 !rounded-3xl">
-                        <SectionHeader icon={<BookOpen size={18} />}>פרטי המילון</SectionHeader>
+                        <SectionHeader icon={<BookOpen size={18} />}>פרטי המאגר</SectionHeader>
 
                         <Input
-                            label="שם המילון"
+                            label="שם המאגר"
                             placeholder="לדוגמה: טעמים בסיסיים"
                             value={draft.name}
                             onChange={e => setDraft({ ...draft, name: e.target.value })}
@@ -141,18 +141,18 @@ export const DictionaryManagerView: React.FC<Props> = ({ data, navigate, setLoad
     // ─── List View ────────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen flex flex-col pb-28">
-            <SubHeader title="מילונים גלובליים" onBack={() => navigate('ADMIN_DASHBOARD')} />
+            <SubHeader title="מאגרי מאפיינים גלובליים" onBack={() => navigate('ADMIN_DASHBOARD')} />
 
             <div className="p-6 space-y-4">
                 <div className="bg-accent-ghost p-4 rounded-2xl text-body-sm text-secondary leading-relaxed">
-                    <strong>מה זה מילון גלובלי?</strong><br />
-                    רשימת אפשרויות שניתן לשתף בין שדות שונים. בכל שדה מסוג "מילון", תבחר מהרשימה הזו במקום להזין בעצמך כל פעם מחדש. עדכון המילון יעדכן אוטומטית את כל השדות שמצביעים אליו.
+                    <strong>מה זה מאגר מאפיינים גלובלי?</strong><br />
+                    רשימת אפשרויות שניתן לשתף בין שדות שונים. בכל שדה מסוג "מאפיינים", תבחר מהרשימה הזו במקום להזין בעצמך כל פעם מחדש. עדכון המאגר יעדכן אוטומטית את כל השדות שמצביעים אליו.
                 </div>
 
                 {dictionaries.length === 0 ? (
                     <div className="text-center py-12 text-muted">
                         <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
-                        <p className="text-body-sm">אין מילונים עדיין</p>
+                        <p className="text-body-sm">אין מאגרים עדיין</p>
                     </div>
                 ) : (
                     dictionaries.map(dict => (
@@ -194,7 +194,7 @@ export const DictionaryManagerView: React.FC<Props> = ({ data, navigate, setLoad
             <StickyFooter>
                 <Button fullWidth onClick={startNew}>
                     <Plus size={18} className="ml-1" />
-                    מילון חדש
+                    מאגר מאפיינים חדש
                 </Button>
             </StickyFooter>
         </div>

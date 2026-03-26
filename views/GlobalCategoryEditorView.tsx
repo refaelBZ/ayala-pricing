@@ -150,11 +150,11 @@ export const GlobalCategoryEditorView: React.FC<Props> = ({ data, editingGlobalC
                                                 <div className="flex gap-2 items-center">
                                                     <BaseSelect className="h-7 text-xs flex-1" value={field.type} onChange={e => updateTriggeredField(oi, fi, { ...field, type: e.target.value as 'text' | 'dictionary', dictionaryId: undefined })}>
                                                         <option value="text">טקסט חופשי</option>
-                                                        <option value="dictionary">מילון</option>
+                                                        <option value="dictionary">מאפיינים</option>
                                                     </BaseSelect>
                                                     {field.type === 'dictionary' && (
                                                         <BaseSelect className="h-7 text-xs flex-1" value={field.dictionaryId || ''} onChange={e => updateTriggeredField(oi, fi, { ...field, dictionaryId: e.target.value || undefined })}>
-                                                            <option value="">בחר מילון...</option>
+                                                            <option value="">בחר מאגר...</option>
                                                             {globalDictionaries.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                         </BaseSelect>
                                                     )}

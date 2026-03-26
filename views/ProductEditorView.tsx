@@ -99,11 +99,11 @@ const FormFieldEditor: React.FC<FormFieldEditorProps> = ({
             <div className="flex gap-2 items-center">
                 <BaseSelect className="h-8 text-xs flex-1" value={field.type} onChange={e => onChange({ ...field, type: e.target.value as 'text' | 'dictionary', dictionaryId: undefined })}>
                     <option value="text">טקסט חופשי</option>
-                    <option value="dictionary">מילון (אפשרויות)</option>
+                    <option value="dictionary">מאפיינים (רשימה)</option>
                 </BaseSelect>
                 {field.type === 'dictionary' && (
                     <BaseSelect className="h-8 text-xs flex-1" value={field.dictionaryId || ''} onChange={e => onChange({ ...field, dictionaryId: e.target.value || undefined })}>
-                        <option value="">בחר מילון...</option>
+                        <option value="">בחר מאגר...</option>
                         {globalDictionaries.map(d => (
                             <option key={d.id} value={d.id}>{d.name}</option>
                         ))}
