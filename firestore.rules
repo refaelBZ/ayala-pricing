@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Admin = any authenticated Firebase Auth user.
+    // Only the business owner has credentials; no public sign-up exists.
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Products: public read (needed for Calculator & Home), admin write only.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Global categories: public read (needed for Calculator), admin write only.
+    match /global_categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders: admin has full CRUD.
+    // Public users may GET a single order by ID (for the share link),
+    // but LIST (fetching the whole collection) is denied.
+    match /orders/{orderId} {
+      allow read, write: if isAdmin();
+      allow get: if true;   // allows getDoc() by ID — blocks getDocs() on collection
+    }
+
+    // Private sub-document: holds internalNotes — admin only, never sent to public.
+    match /orders/{orderId}/private/{doc} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

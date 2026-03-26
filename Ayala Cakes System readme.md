@@ -23,6 +23,7 @@ luxury "French Patisserie" aesthetic.
 3. [User Flow — Calculator to Order](#-user-flow--calculator-to-order)
 4. [Orders Dashboard](#-orders-dashboard)
 5. [Product Editor (CMS)](#-product-editor-cms)
+   - [Global Categories](#global-categories-globalcategoryeditorview)
 6. [Data Model](#-data-model)
 7. [Admin System](#-admin-system)
 8. [Design System & UI](#-design-system--ui)
@@ -44,6 +45,8 @@ The system does **not** sum individual option prices. Instead, it operates on a
 2. Every selectable option is **linked to a tier** (or has a manual override price).
 3. When the customer selects options across multiple categories, the system identifies the **most expensive linked tier** among all selections.
 4. **The final price = the price of that highest tier.**
+
+**Manual-price options** (`linkTier: -1`) are added on top of the tier price — their `manualPrice` value is summed into the total independently.
 
 #### Practical Example
 
@@ -82,40 +85,67 @@ Each category has one of two selection modes:
 ## 📝 Dynamic Form Fields
 
 The system dynamically generates input fields in the order form **based on the customer's calculator selections**.
-There are **two sources** for dynamic fields:
+There are **two sources** for dynamic fields, and both can fire simultaneously for a single order:
 
-### Source 1 — Tier-Level Fields (`includedSpecs`)
+### Source 1 — Tier-Level Fields (`includedSpecs`) — Cumulative
 
 Each pricing tier can define **required fields** that appear when that tier is the Max Tier.
+Tier specs are **cumulative**: when Tier N is the Max Tier, the system collects `includedSpecs` from every tier from 0 through N, in order.
 
-**Example:** The "Plus" tier defines `includedSpecs: [{ label: "Flavor", count: 2 }]`
-→ If Plus is the highest selected tier, the order form renders **2 text inputs** labeled "Flavor 1" and "Flavor 2".
+**Example:** A three-tier cake product:
+- Tier 0 (Classic) defines `includedSpecs: [{ label: "Flavor", count: 2 }]`
+- Tier 1 (Plus) defines `includedSpecs: [{ label: "Color", count: 1 }]`
+- Tier 2 (Extra) defines `includedSpecs: [{ label: "Print text", count: 1 }]`
+
+→ If the Max Tier is **Extra (2)**, the order form renders: **2 Flavor inputs** (from Tier 0) + **1 Color input** (from Tier 1) + **1 Print text input** (from Tier 2).
+
+→ If the Max Tier is **Plus (1)**, the order form renders: **2 Flavor inputs** (from Tier 0) + **1 Color input** (from Tier 1). Extra's spec is not included.
+
+> **Use case:** Tier specs are appropriate when any order at a given price level always requires the same information — regardless of which specific option triggered that tier.
 
 ### Source 2 — Option-Level Fields (`formInputs`)
 
-Each individual option can define **detail fields** that appear when the customer selects that option.
+Each individual option can define **one or more groups of detail fields** that appear when the customer selects that option.
+`formInputs` is an **array** — a single option can have multiple independent field groups (e.g., "Filling" AND "Color" under one option).
 
-**Example:** The option "Layer cake" defines `formInputs: { label: "Layer flavor", count: 3 }`
-→ When the customer selects "Layer cake," the order form renders **3 text inputs** labeled "Layer flavor 1", "Layer flavor 2", "Layer flavor 3".
+**Example:** The option "Printed sugar sheet" defines:
+```
+formInputs: [
+  { label: "Print description", count: 1 },
+  { label: "Background color",  count: 1 }
+]
+```
+→ Selecting this option renders **1 Print description input** and **1 Background color input** in the order form.
+
+> **Use case:** Option specs are appropriate when only one specific selection (not every order at a price level) requires extra detail — e.g., only the "Custom text" option needs a text field, while other options at the same tier do not.
+
+### Predefined Dropdown Choices
+
+Any field (whether from a tier spec or an option spec) can have **predefined choices**, stored as `choices?: string[]` on the `OptionFormInput`.
+
+- When `choices` is set, the order form renders a `<select>` dropdown instead of a plain text input.
+- The dropdown always includes an **"Other / type your own..."** option at the end, which reveals a free-text input when selected.
+- When `choices` is empty or absent, the field renders as a plain text input.
 
 ### Field Object Structure (`OptionFormInput`)
 
 ```typescript
 interface OptionFormInput {
-  label: string;   // Field label (e.g., "Flavor", "Color")
-  count: number;   // How many input fields to render
-  type?: 'text' | 'color' | 'select';  // Input type
+  label: string;            // Field label (e.g., "Flavor", "Color")
+  count: number;            // How many input fields to render
+  type?: 'text' | 'color' | 'select';  // Input type (optional, defaults to text)
+  choices?: string[];       // Predefined options; renders a dropdown when present
 }
 ```
 
 ### How It Works Under the Hood
 
 1. Customer finishes selecting options in the Calculator and clicks "Continue."
-2. The system scans all selections and identifies the **Max Tier**.
-3. If the Max Tier has `includedSpecs` → corresponding `InputRequest` objects are created.
-4. For each selected Option that has `formInputs` → an additional `InputRequest` is created.
-5. In the Order Form, each `InputRequest` renders as a group of inputs under the `sourceName` heading.
-6. The values the customer fills in are stored in `dynamicDetails` and ultimately saved as `selectedDetails` on the order.
+2. The system scans all selections and identifies the **Max Tier index** (`maxTierIdx`).
+3. The `includedSpecs` of the **Max Tier only** are used — this is the complete explicit list for that price level. Lower-tier specs are only present if the admin copied them in during setup (using the auto-population tool). One `InputRequest` is created per spec.
+4. For each selected Option that has `formInputs`, one `InputRequest` is created **per spec in the array**.
+5. In the Order Form, each `InputRequest` renders as a labeled group under the `sourceName` heading. If the spec has `choices`, each slot renders as a `<select>` dropdown with a built-in "אחר / הקלד בעצמך..." option that switches the slot to a free-text input.
+6. The values the customer fills in are stored in `dynamicDetails: Record<string, string[]>` (keyed by `req.id`) and ultimately saved as `selectedDetails` on the order.
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -129,13 +159,15 @@ interface OptionFormInput {
 ├──────────────────────────────────────────────────────┤
 │  ORDER FORM VIEW                                      │
 │                                                       │
-│  ┌─ Fields from Extra tier (includedSpecs) ─┐        │
-│  │  [Flavor 1: ___________]                  │        │
-│  │  [Flavor 2: ___________]                  │        │
-│  └───────────────────────────────────────────┘        │
+│  ┌─ Cumulative tier specs (0 → 1 → 2) ─────────────┐ │
+│  │  Classic: [Flavor 1: ____] [Flavor 2: ____]      │ │
+│  │  Plus:    [Color: ____]                           │ │
+│  │  Extra:   [Print text: ____]                      │ │
+│  └──────────────────────────────────────────────────┘ │
 │                                                       │
-│  ┌─ Fields from "Sugar sheet" option (formInputs) ─┐ │
-│  │  [Print description: ___________]                │ │
+│  ┌─ "Sugar sheet" option formInputs ────────────────┐ │
+│  │  [Print description: ____]                        │ │
+│  │  [Background color:  ▼ dropdown ▼]               │ │
 │  └──────────────────────────────────────────────────┘ │
 │                                                       │
 │  ┌─ Static fields (always present) ──────────────┐   │
@@ -157,10 +189,24 @@ interface OptionFormInput {
 - Categories are displayed with all their options.
 - `radio` categories render as single-select buttons with a circular indicator.
 - `checkbox` categories render as multi-select buttons with a checkmark indicator.
+- Options that have a linked product show a subtle **"+ תוספת נפרדת"** hint below their name.
 - **Sticky bottom panel** shows:
   - Real-time calculated price.
   - **"Copy"** button — generates a formatted WhatsApp quote message using the product's `messageTemplate` and copies it to clipboard.
-  - **"Continue"** button — navigates to the Order Form.
+  - **"Continue"** button — evaluates any linked products in the selection (see Step 2.5), then navigates to the Order Form.
+
+### Step 2.5 — Linked Product Modal (`LinkedProductModal`) _(conditional)_
+
+If one or more of the customer's selected options has a `linkedProductId`, clicking "Continue" **does not immediately navigate to the Order Form**. Instead:
+
+1. A **bottom-sheet modal** slides up for the first linked product.
+2. The modal renders a **full Calculator UI** (categories, radio/checkbox options, live price) for the linked product.
+3. The customer configures the linked product and clicks **"אישור" (Confirm)**.
+4. If multiple linked products are queued, the next modal opens automatically.
+5. Once all linked products are confirmed, the system navigates to the Order Form with **all items** assembled.
+6. If the customer clicks **✕ (Cancel)**, they remain on the Calculator with no changes.
+
+> **Key behaviour:** The linked product always has `quantity: 1` in the order, completely independent of the main product's quantity.
 
 ### Step 3 — Order Form (`OrderFormView`)
 
@@ -168,7 +214,7 @@ The form is divided into sections:
 
 | Section | Fields | Required? |
 |---------|--------|-----------|
-| Order Summary | Product name, selected options, price | Auto-generated |
+| Order Summary | Product name, selected options, quantity control, price | Auto-generated |
 | Product Details | Dynamic fields (from `includedSpecs` and `formInputs`) | Depends on product config |
 | Event Date | Date (required), Time | Date is required |
 | Customer Info | Full name (required), Phone (required), Email, Referral source | Name + Phone required |
@@ -176,6 +222,8 @@ The form is divided into sections:
 | Additional Notes | Free-text textarea | — |
 
 **Referral source options:** Instagram, Facebook, WhatsApp, Friend, Other.
+
+Each **main** item in the Order Summary includes a **quantity selector** (−/+ controls, minimum 1). The total price updates in real time as quantity changes (`totalPrice = unitPrice × quantity`). **Linked add-on items** are shown with a `תוספת` badge and have **no quantity controls** — they are always counted as 1.
 
 ### Step 4 — Order Submission
 - The order is saved to Firestore with:
@@ -195,23 +243,37 @@ The form is divided into sections:
 Displays all orders as cards, sorted by event date (nearest first).
 
 **Each order card shows:**
-- Event date and time (Hebrew locale format: "Sunday, Feb 5").
-- Execution status (colored badge).
-- Customer name.
-- Ordered product names.
+- Event date and time.
+- Customer name and ordered product names (tappable → Order Details).
+- **Inline status dropdowns** (save directly to Firestore on change):
+  - **Execution status** — טרם התחיל / בהכנה / מוכן לאיסוף / נמסר (color-coded chip).
+  - **Payment status** — לא שולם / מקדמה / שולם במלואו (color-coded chip).
+  - **Invoice toggle button** — flips `isInvoiceIssued`; shows "✓ קבלה" when issued.
 - Total price.
-- Payment status (colored badge).
-- Invoice status.
-- Delete button.
+- **Quick Edit button** (✏️) — navigates directly to `ORDER_EDIT` without opening the order details first.
+- **Delete button** (🗑️).
 
-**Filter chips:**
+**Filter bar:**
 
-| Filter | Logic |
-|--------|-------|
-| All | Shows all orders |
-| This Week | Orders with event dates within the next 7 days |
-| ⚠️ Unpaid | Orders where `paymentStatus !== 'paid_full'` |
-| Awaiting Receipt | Orders where `isInvoiceIssued === false` |
+The filter bar has two modes controlled by a **"שלב סינונים"** checkbox at the end of the row:
+
+| Mode | Behavior |
+|------|----------|
+| **Tab mode** (default) | Chips behave like tabs — clicking one deselects the previous |
+| **Multi-filter mode** (checkbox on) | Chips toggle independently; results must match **all** active chips simultaneously (AND logic) |
+
+Available filter chips:
+
+| Chip | Logic |
+|------|-------|
+| 📅 השבוע | Event date within the next 7 days |
+| ⚠️ לא שולם | `paymentStatus === 'unpaid'` |
+| 🔶 מקדמה בלבד | `paymentStatus === 'deposit'` |
+| 🧾 ממתין לקבלה | `isInvoiceIssued === false` |
+| ✅ הושלמו | `executionStatus === 'delivered'` only |
+
+> **Delivered orders are always hidden** from all filters except ✅ הושלמו, keeping the active workload view clean. A **"נקה סינון"** clear button appears whenever any filter is active.
+
 
 ### Order Details View (`OrderDetailsView`)
 
@@ -272,6 +334,8 @@ Lists all existing products with:
 - Delete button (with confirmation dialog).
 - "Add New Product" button (Sticky Footer) — creates a product with 3 default tiers: Basic, Plus, Extra.
 
+Below the products list, a second section lists all **Global Categories** (see below). A separate "Add Global Category" button in the Sticky Footer creates a new global category and opens its editor.
+
 ### Product Editor (`ProductEditorView`)
 
 A full visual editor for creating and editing products **without writing any code**.
@@ -281,8 +345,26 @@ A full visual editor for creating and editing products **without writing any cod
 Every product requires at least one tier. Each tier has:
 - **Name** — e.g., "Classic", "Plus", "Extra".
 - **Price** — price in NIS (₪).
-- **Included Specs (optional)** — a list of fields that open in the order form when this tier is the Max Tier.
-  - Each spec has: `label` (e.g., "Flavor") and `count` (e.g., 2).
+- **Tier Fields (collapsible, optional)** — each tier row has a **gear (⚙) icon button** on the right. Clicking it opens a bottom-sheet modal for that tier's spec configuration. A small **indicator dot** appears on the gear icon when specs are already configured, so the admin can see at a glance which tiers have specs without opening the modal.
+
+**How tier spec inheritance works:**
+
+Specs are **cumulative** — when a given tier is the Max Tier, the order form collects specs from every tier from 0 up to and including that tier. The admin defines the full explicit spec list for each tier — lower-tier specs are not added automatically at runtime; they must be present on each tier that should include them.
+
+To make this easy, when the admin enables the "פירוט נוסף לרמה זו" checkbox on a **higher** tier for the first time, the editor **automatically pre-populates** the spec list by copying all specs from every lower tier. This means the admin starts with the inherited baseline already in place and only needs to add the new specs that are unique to the higher tier.
+
+Each spec in the modal shows a **colored "מרמה: X" badge** if that spec was originally defined on a lower tier, making it clear at a glance which fields are inherited and which are new to this tier.
+
+**Overriding counts on inherited specs:** An inherited spec can have its `count` edited directly in the higher-tier modal. For example, if the "Classic" tier requires 2 flavors, the "Extra" tier can override that to 3 flavors — without changing the Classic tier's original definition. The override only applies when the higher tier is the Max Tier.
+
+Each spec has:
+- **Label** — displayed as the input group heading in the order form (e.g., "Flavor", "Color").
+- **Count** — how many numbered inputs of this label to render (e.g., `count: 3` → "Flavor 1", "Flavor 2", "Flavor 3").
+- **Predefined choices (optional)** — a comma-separated list; if entered, the order form renders a `<select>` dropdown for each count slot instead of a free-text input. Selecting "אחר / הקלד בעצמך..." from the dropdown reveals a free-text input for that slot.
+
+Additional specs per tier are added with the **"הוסף שדה לרמה"** button. **Safety guard:** Unchecking the checkbox while specs are present triggers a browser confirmation dialog before deleting.
+
+**Smart Suggestions:** When typing a label in any spec field (tier specs, option formInputs, or global category option formInputs), the editor shows a live suggestion dropdown populated from all label + choices pairs already saved across all products and global categories. Clicking a suggestion auto-fills both the label and its associated choices list, eliminating re-entry of common fields like "טעם" or "צבע".
 
 #### Part 2 — Categories & Options
 
@@ -293,15 +375,49 @@ Any number of categories can be created. Each category has:
   - **Name** — what the customer sees.
   - **Tier Link (`linkTier`)** — which tier this option maps to, or "Manual price" (`-1`).
   - **Manual Price (`manualPrice`)** — appears only when linkTier is `-1`.
-  - **Requires detail? (`formInputs`)** — a checkbox that enables dynamic fields config:
-    - Field label.
-    - Count.
+  - **Requires detail? (`formInputs`)** — a checkbox that enables one or more dynamic field groups for this option. Multiple groups can be added with the **"הוסף שדה נוסף"** button (e.g., "Filling × 3" AND "Color × 2" under the same option). Each group has:
+    - **Label** — input heading in the order form.
+    - **Count** — number of inputs.
+    - **Predefined choices (optional)** — comma-separated; renders a dropdown with a built-in "Other / type your own" free-text fallback.
+  - **Safety guard:** Unchecking the "Requires detail?" checkbox while field groups are present triggers a browser confirmation dialog ("האם אתה בטוח שברצונך למחוק את כל השדות שהוגדרו לאפשרות זו?"). The fields are only deleted if the admin confirms.
+  - **Link to Product (`linkedProductId`)** — optionally links this option to another existing product. When the customer selects this option and clicks "Continue", a **Linked Product Modal** opens for the linked product so the customer can configure it independently as a separate add-on.
 
 #### Part 3 — Message Template
 
 A text template used for the WhatsApp copy feature. Supports placeholders:
 - `{details}` — list of selected options.
 - `{price}` — final calculated price.
+
+---
+
+### Global Categories (`GlobalCategoryEditorView`)
+
+A **Global Category** is a reusable option category that is defined once and can be attached to any subset of products. It works exactly like a product's own category in the Calculator (same radio/checkbox UI, same price calculation) — but lives independently so it doesn't need to be duplicated on every product.
+
+**Typical use cases:** Delivery options, allergen notes, gift wrapping — anything that applies to multiple products identically.
+
+#### How global categories differ from product categories
+
+| | Product Category | Global Category |
+|---|---|---|
+| Where defined | Inside a specific product | Independently, in its own editor |
+| Appears in Calculator for | That product only | Any product you target |
+| Pricing | Linked to product tiers or manual | Always manual price only |
+| Managed from | Product Editor | Admin Dashboard → Global Categories section |
+
+#### Creating a global category
+
+1. Go to **Admin Dashboard** → scroll to the "קטגוריות גלובליות" section → click **"הוסף קטגוריה גלובלית"**.
+2. Enter a **category name** (e.g., "משלוח").
+3. Choose **selection type**: single-choice (radio) or multi-choice (checkbox).
+4. Under **"מוצרים שהקטגוריה מופיעה בהם"**, tick every product this category should appear in. A category with no products ticked will never appear in the Calculator.
+5. Add **options** — each option has a name and a manual price (e.g., "איסוף עצמי — 0₪", "משלוח עד הבית — 50₪").
+6. Optionally, enable **"דורש פירוט נוסף"** on an option to collect extra text from the customer at order time (e.g., a delivery address field).
+7. Click **"שמור שינויים"** — the category is saved to Firestore and immediately active.
+
+#### How it appears in the Calculator
+
+Global categories for the selected product are appended **after** the product's own categories. From the customer's perspective they look and behave identically to any other category. Selecting an option with a manual price adds that amount on top of the tier-based price.
 
 ---
 
@@ -321,9 +437,19 @@ interface Product {
 interface ProductTier {
   name: string;                  // Tier name (Classic, Plus, Extra)
   price: number;                 // Price in NIS
-  includedSpecs?: OptionFormInput[];  // Fields that open when this is the Max Tier
+  includedSpecs?: OptionFormInput[];  // Fields collected cumulatively: tier N inherits specs from tiers 0..N
 }
 ```
+
+### Global Category
+
+A `GlobalCategory` has the same shape as a `Category` plus a `targetProductIds` list that controls which products it appears in. Options in a global category always use manual pricing (`linkTier` is always `-1`).
+
+- **`id`** — unique identifier.
+- **`name`** — displayed as the section heading in the Calculator.
+- **`type`** — `radio` or `checkbox`, same as a product category.
+- **`targetProductIds`** — list of product IDs this category is attached to. The Calculator filters global categories by this list.
+- **`options`** — same `Option` structure as product options, but `linkTier` is always `-1` and `manualPrice` is always visible.
 
 ### Category & Option
 
@@ -340,13 +466,15 @@ interface Option {
   name: string;                  // Display name (customer-facing)
   linkTier: number;              // 0/1/2 = tier link index, -1 = manual price
   manualPrice?: number;          // Manual price (only when linkTier === -1)
-  formInputs?: OptionFormInput;  // Dynamic fields triggered by selecting this option
+  formInputs?: OptionFormInput[]; // Array of field groups triggered by selecting this option
+  linkedProductId?: string;      // If set, selecting this option opens a Linked Product Modal
 }
 
 interface OptionFormInput {
-  label: string;                 // Field label (e.g., "Flavor")
-  count: number;                 // Number of input fields
-  type?: 'text' | 'color' | 'select';
+  label: string;                 // Field label (e.g., "Flavor", "Color")
+  count: number;                 // Number of input fields to render
+  type?: 'text' | 'color' | 'select';  // Input type (optional, defaults to text)
+  choices?: string[];            // Predefined dropdown options; renders <select> when present
 }
 ```
 
@@ -365,7 +493,7 @@ interface Order {
   customer: Customer;
   delivery: Delivery;
   items: OrderItem[];
-  internalNotes?: string;
+  internalNotes?: string;        // Admin-only — stored in private Firestore sub-document
   totalPrice: number;
 }
 
@@ -385,9 +513,13 @@ interface Delivery {
 interface OrderItem {
   productId: string;
   productName: string;
-  price: number;
+  price: number;                 // Unit price
+  quantity: number;              // Always >= 1; default 1
   details: string;               // Concatenated text of selected options
   selectedDetails?: SelectedDetail[];  // Dynamic details filled by the customer
+  // Internal UI-only fields (stripped before saving to Firestore):
+  _inputRequests?: InputRequest[];  // Used during the Order Form flow to render inputs
+  _isLinked?: boolean;              // True for items added via the Linked Product Modal (quantity locked at 1)
 }
 
 interface SelectedDetail {
@@ -399,30 +531,35 @@ interface SelectedDetail {
 
 ### View States
 
-The application has 9 view states for routing:
+The application has 10 view states for routing:
 
-```typescript
-type ViewState =
-  | 'HOME'             // Product listing
-  | 'CALCULATOR'       // Price calculator
-  | 'ORDER_FORM'       // Order submission form
-  | 'ORDERS_DASHBOARD' // Admin: order list
-  | 'ORDER_DETAILS'    // Admin: single order view
-  | 'ORDER_EDIT'       // Admin: edit order
-  | 'ADMIN_LOGIN'      // Admin: PIN login
-  | 'ADMIN_DASHBOARD'  // Admin: product management
-  | 'PRODUCT_EDITOR';  // Admin: edit/create product
-```
+| ViewState | URL | Description |
+|-----------|-----|-------------|
+| `HOME` | `/` | Product listing |
+| `CALCULATOR` | `/calculator` | Price calculator |
+| `ORDER_FORM` | `/order` | Order submission form |
+| `ORDERS_DASHBOARD` | `/orders` | Admin: order list |
+| `ORDER_DETAILS` | `/orders/:id` | Admin + public: single order view |
+| `ORDER_EDIT` | `/orders/:id/edit` | Admin: edit order |
+| `ADMIN_LOGIN` | `/admin` | Firebase Auth login |
+| `ADMIN_DASHBOARD` | `/admin/products` | Admin: product + global category management |
+| `PRODUCT_EDITOR` | `/admin/products/:id` | Admin: edit/create product |
+| `GLOBAL_CATEGORY_EDITOR` | `/admin/global-categories/:id` | Admin: edit/create global category |
 
 ---
 
 ## 🔐 Admin System
 
 ### Authentication
-- Login via a **PIN/password** defined in the environment variable `VITE_ADMIN_PASSWORD`.
-- The PIN is compared client-side (no authentication server).
-- On successful login, admin state is persisted in **`localStorage`** (key: `ayala_is_admin`) to survive page refreshes.
-- The **"Logout"** button in the header clears localStorage and returns to Home.
+
+The admin system uses **Firebase Authentication** (email + password). There is no client-side PIN comparison.
+
+- Login is performed via `signInWithEmailAndPassword` — credentials are managed in the Firebase console.
+- Auth state is tracked via the `onAuthStateChanged` listener. The `isAdmin` flag is derived from the presence of a live Firebase `User` object — no `localStorage` key is used.
+- On successful login, `onAuthStateChanged` fires automatically and the route guard redirects to `ORDERS_DASHBOARD`.
+- The **"Logout"** button in the header calls `signOut` and returns to Home.
+- A **route guard** in `useAppState` runs whenever `authReady` (first `onAuthStateChanged` resolution) or `isAdmin` changes, redirecting unauthenticated users away from admin-only views.
+- `authReady` is exported from `useAppState` and indicates whether the initial Firebase Auth check has completed. Data loading waits for `authReady` before fetching.
 
 ### Navigation (Global Header)
 
@@ -435,6 +572,27 @@ The **GlobalHeader** (sticky top bar) displays:
 
 The active tab receives a highlighted style (primary background + glow shadow).
 
+**On mobile**, navigation tabs and login/logout controls collapse into a **hamburger menu** (☰ / ✕ toggle). The dropdown opens below the header, closes on navigation or outside click, and supports the same tab structure as the desktop layout.
+
+### URL-Based Routing
+
+Navigation is implemented via the **History API** — the `navigate()` function in `useAppState` synchronizes `ViewState` with the browser URL using `window.history.pushState`. Each view maps to a distinct URL:
+
+| ViewState | URL |
+|-----------|-----|
+| `HOME` | `/` |
+| `CALCULATOR` | `/calculator` |
+| `ORDER_FORM` | `/order` |
+| `ORDERS_DASHBOARD` | `/orders` |
+| `ORDER_DETAILS` | `/orders/:id` |
+| `ORDER_EDIT` | `/orders/:id/edit` |
+| `ADMIN_LOGIN` | `/admin` |
+| `ADMIN_DASHBOARD` | `/admin/products` |
+| `PRODUCT_EDITOR` | `/admin/products/:id` |
+| `GLOBAL_CATEGORY_EDITOR` | `/admin/global-categories/:id` |
+
+The browser Back/Forward buttons (`popstate`) are handled — the app re-parses the URL and restores the correct view. Transient views (`CALCULATOR`, `ORDER_FORM`) cannot be restored from a URL alone and fall back to `HOME`.
+
 ### Public Read-Only Order URL
 
 Every order has a permanent, shareable public URL in the form:
@@ -445,7 +603,7 @@ https://<app-domain>?orderId=<uuid>
 When this URL is loaded:
 1. The app reads `orderId` from `window.location.search`.
 2. Sets `isPublicView = true` and `view = 'ORDER_DETAILS'`.
-3. Fetches all orders, finds the matching one, and sets it as `selectedOrder`.
+3. Calls `fetchOrderById(orderId)` to load the specific order document (permitted by Firestore rules even for unauthenticated users).
 4. The Global Header is hidden — the user sees only the clean receipt view.
 5. No edit controls, internal notes, or admin navigation are shown.
 
@@ -549,16 +707,17 @@ ayala-pricing/
 ├── hooks/
 │   └── useAppState.ts       # Centralized State Management (single hook)
 │
-├── views/                   # Full-Screen Features (9 screens)
+├── views/                   # Full-Screen Features (10 screens)
 │   ├── HomeView.tsx          # Home — product listing
-│   ├── CalculatorView.tsx    # Price calculator — MaxTier logic
+│   ├── CalculatorView.tsx    # Price calculator — MaxTier logic + global categories
 │   ├── OrderFormView.tsx     # Order form — static + dynamic fields
 │   ├── OrdersDashboardView.tsx  # Orders list — filters + cards
 │   ├── OrderDetailsView.tsx  # Order details — Paper Slip (read-only)
 │   ├── OrderEditView.tsx     # Order editing — statuses + details
-│   ├── AdminLoginView.tsx    # Admin login — PIN entry
-│   ├── AdminDashboardView.tsx # Product management dashboard
-│   └── ProductEditorView.tsx # Product editor — Tiers + Categories + Options
+│   ├── AdminLoginView.tsx    # Admin login — Firebase Auth (email + password)
+│   ├── AdminDashboardView.tsx # Product + global category management dashboard
+│   ├── ProductEditorView.tsx # Product editor — Tiers + Categories + Options
+│   └── GlobalCategoryEditorView.tsx  # Global category editor — targeting + options
 │
 ├── components/              # Shared UI Components (13 components)
 │   ├── BaseCard.tsx
@@ -578,7 +737,11 @@ ayala-pricing/
 ├── services/
 │   └── storage.ts           # Firebase Abstraction Layer + Default Seeding
 │
+├── firebase.json            # Firebase CLI config (points to firestore.rules)
+├── firestore.rules          # Firestore Security Rules (deploy via Firebase CLI)
+├── firestore.indexes.json   # Firestore composite indexes (currently empty)
 ├── vite.config.ts           # Vite Config (port 3000, path aliases)
+├── vite-env.d.ts            # Vite environment variable type declarations
 ├── tsconfig.json
 ├── vercel.json              # Deployment Config (SPA rewrites)
 └── package.json
@@ -591,26 +754,28 @@ There is no Redux, Context API, or external store.
 
 | State Group | Contents |
 |-------------|----------|
-| **Core** | `data` (products), `loading`, `view` (ViewState), `toastMsg` |
-| **Admin** | `isAdmin` (from localStorage), `adminPasswordInput`, `loginAsAdmin()`, `logoutAdmin()` |
+| **Core** | `data` (products + globalCategories), `loading`, `view` (ViewState), `toastMsg` |
+| **Admin** | `isAdmin` (derived from Firebase Auth), `authReady`, `loginAsAdmin()`, `logoutAdmin()` |
 | **Public View** | `isPublicView` — `true` when the app is loaded via a `?orderId=` URL; suppresses the header and admin controls |
-| **Orders** | `orders`, `orderFilter`, `selectedOrder` |
+| **Orders** | `orders`, `orderFilter` (`string[]` — multi-select active filter IDs), `selectedOrder` |
 | **Calculator** | `selectedProductId`, `selections` |
 | **Product Editor** | `editingProduct` |
+| **Global Category Editor** | `editingGlobalCategory` |
 | **Order Form** | `pendingOrder`, `dynamicDetails`, `orderForm` |
-| **Helpers** | `loadData()`, `showToast()`, `resetOrderForm()` |
+| **Helpers** | `loadData()`, `showToast()`, `resetOrderForm()`, `navigate()` |
 
 ### Routing
 
-There is no React Router. Navigation is implemented via `ViewState` — an enum of 9 states stored in the `useAppState` hook:
+Navigation is implemented via `navigate()` — a function in `useAppState` that updates `ViewState` and calls `window.history.pushState` to sync the URL. There is no React Router dependency.
 
 ```
-?orderId= URL → ORDER_DETAILS (isPublicView=true, no header)
+?orderId= URL → ORDER_DETAILS (isPublicView=true, no header)  [fetchOrderById]
 
-HOME → CALCULATOR → ORDER_FORM → (save) → ORDER_DETAILS
-                                           ↓
-ADMIN_LOGIN → ORDERS_DASHBOARD → ORDER_DETAILS → ORDER_EDIT
-           → ADMIN_DASHBOARD → PRODUCT_EDITOR
+HOME (/) → CALCULATOR (/calculator) → ORDER_FORM (/order) → (save) → ORDER_DETAILS (/orders/:id)
+                                                                       ↓
+ADMIN_LOGIN (/admin) → ORDERS_DASHBOARD (/orders) → ORDER_DETAILS (/orders/:id) → ORDER_EDIT (/orders/:id/edit)
+                     → ADMIN_DASHBOARD (/admin/products) → PRODUCT_EDITOR (/admin/products/:id)
+                                                        → GLOBAL_CATEGORY_EDITOR (/admin/global-categories/:id)
 ```
 
 ### Firebase Layer (`storage.ts`)
@@ -620,19 +785,50 @@ ADMIN_LOGIN → ORDERS_DASHBOARD → ORDER_DETAILS → ORDER_EDIT
 | `fetchProducts()` | Loads products from Firestore. If no products exist — **performs automatic seeding** with 3 default products |
 | `saveProductToFirestore(product)` | Saves/updates a product (setDoc — overwrite) |
 | `deleteProductFromFirestore(id)` | Deletes a product |
-| `fetchOrders()` | Loads all orders |
-| `saveOrderToFirestore(order)` | Saves/updates an order. Ensures `createdAt` is set |
-| `deleteOrderFromFirestore(id)` | Deletes an order |
+| `fetchGlobalCategories()` | Loads all global categories from Firestore (public read) |
+| `saveGlobalCategoryToFirestore(gc)` | Saves/updates a global category (setDoc — overwrite) |
+| `deleteGlobalCategoryFromFirestore(id)` | Deletes a global category |
+| `fetchOrders()` | Loads all orders + private `internalNotes` sub-documents (admin only) |
+| `fetchOrderById(id)` | Fetches a single order by ID (public — no auth required; no `internalNotes`) |
+| `saveOrderToFirestore(order)` | Saves/updates an order. Public fields are written to the main document; `internalNotes` is written to `orders/{id}/private/data` (admin-only sub-document) |
+| `deleteOrderFromFirestore(id)` | Deletes the private sub-document first, then the main order document |
 | `generateUUID()` | Generates a unique ID (`crypto.randomUUID` with fallback) |
+| `loginAdmin(email, password)` | Firebase Auth `signInWithEmailAndPassword` |
+| `logoutAdmin()` | Firebase Auth `signOut` |
 
 **Firestore Collections:**
 - `products` — one document per product, document ID = `product.id`.
+- `global_categories` — one document per global category, document ID = `globalCategory.id`. Publicly readable; admin write only.
 - `orders` — one document per order, document ID = `order.id`.
+- `orders/{id}/private/data` — private sub-document holding `internalNotes`. Only admins can read or write this path.
+
+**Privacy Model:** Public users (share link) can `getDoc` a single order by ID but cannot list the collection. The `internalNotes` field is never included in the public document — it lives exclusively in the private sub-document and is only fetched by `fetchOrders()` (admin-authenticated).
 
 **Automatic Seeding:** On the first launch when no products exist in Firestore, 3 default products are created:
 1. **Bento Cake** — Classic/Plus/Extra (180/210/290₪), 3 categories (Size, Design, Packaging).
 2. **Designed Cakes** — Mini/Classic/Extra (450/520/700₪), 3 categories (Size, Complexity, Add-ons).
 3. **Workshops** — Basic/Classic/Premium (215/260/320₪), 2 categories (Workshop type, Upgrades).
+
+### Firestore Security Rules (`firestore.rules`)
+
+```
+products/{productId}
+  read:  public
+  write: admin only
+
+global_categories/{categoryId}
+  read:  public  ← needed for Calculator to show applicable global categories
+  write: admin only
+
+orders/{orderId}
+  read/write: admin only
+  get (single doc by ID): public  ← enables share-link fetch
+
+orders/{orderId}/private/{doc}
+  read/write: admin only  ← internalNotes never exposed to public
+```
+
+`isAdmin()` is defined as `request.auth != null` — any authenticated Firebase Auth user is an admin. No public sign-up exists; only the business owner holds credentials.
 
 ---
 
@@ -640,7 +836,7 @@ ADMIN_LOGIN → ORDERS_DASHBOARD → ORDER_DETAILS → ORDER_EDIT
 
 ### Prerequisites
 - Node.js (v18+)
-- A Firebase project with Firestore enabled
+- A Firebase project with **Firestore** and **Firebase Authentication** (Email/Password provider) enabled
 
 ### Install
 
@@ -662,8 +858,9 @@ VITE_FIREBASE_STORAGE_BUCKET=...
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 VITE_FIREBASE_MEASUREMENT_ID=...
-VITE_ADMIN_PASSWORD=...
 ```
+
+> `VITE_ADMIN_PASSWORD` is no longer used. Admin credentials are managed exclusively through the Firebase Authentication console.
 
 ### Run
 
@@ -671,6 +868,12 @@ VITE_ADMIN_PASSWORD=...
 npm run dev        # Development server on port 3000
 npm run build      # Production build
 npm run preview    # Preview production build
+```
+
+### Deploy Firestore Security Rules
+
+```bash
+firebase deploy --only firestore:rules
 ```
 
 ### Deployment
