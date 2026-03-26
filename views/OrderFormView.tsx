@@ -11,12 +11,11 @@ import { BaseCard } from '../components/BaseCard';
 import { ToggleGroup } from '../components/ToggleGroup';
 import { saveOrderToFirestore, generateUUID } from '../services/storage';
 
-type Props = Pick<AppState, 'pendingOrder' | 'setPendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'navigate' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm' | 'setSelectedOrder'>;
+type Props = Pick<AppState, 'data' | 'pendingOrder' | 'setPendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'navigate' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm' | 'setSelectedOrder'>;
 
 export const OrderFormView: React.FC<Props> = ({
-    pendingOrder, setPendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, navigate, showToast, setLoading, loadData, resetOrderForm, setSelectedOrder
+    data, pendingOrder, setPendingOrder, dynamicDetails, setDynamicDetails, orderForm, setOrderForm, navigate, showToast, setLoading, loadData, resetOrderForm, setSelectedOrder
 }) => {
-    // Tracks which dropdown fields are in free-text "Other" mode: { [reqId_index]: true }
     const [otherMode, setOtherMode] = useState<Record<string, boolean>>({});
 
     const updateQuantity = (itemIndex: number, delta: number) => {
@@ -28,6 +27,7 @@ export const OrderFormView: React.FC<Props> = ({
         const newTotal = updatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
         setPendingOrder({ items: updatedItems, totalPrice: newTotal });
     };
+
     if (!pendingOrder) return null;
 
     const handleSubmitOrder = async () => {
@@ -41,7 +41,7 @@ export const OrderFormView: React.FC<Props> = ({
         const finalItems = pendingOrder.items.map(item => {
             const selectedDetails = (item._inputRequests || []).map(req => ({
                 sourceName: req.sourceName,
-                label: req.specs.label || 'פרטים',
+                label: req.field.label || 'פרטים',
                 values: dynamicDetails[req.id] || []
             }));
             // Strip internal UI-only fields before saving
@@ -78,8 +78,6 @@ export const OrderFormView: React.FC<Props> = ({
             showToast('הזמנה נוצרה בהצלחה!');
             resetOrderForm();
             await loadData();
-
-            // Navigate to the newly created order
             navigate('ORDER_DETAILS', { orderId: newOrder.id, order: newOrder });
         } catch (e) {
             console.error(e);
@@ -91,16 +89,13 @@ export const OrderFormView: React.FC<Props> = ({
 
     return (
         <div className="min-h-screen flex flex-col pb-32">
-            {/* Sub-header */}
             <SubHeader title="סיכום והזמנה" onBack={() => navigate('HOME')} />
 
             <div className="p-6 space-y-6 max-w-2xl mx-auto w-full">
 
                 {/* 1. Order Summary */}
                 <BaseCard variant="outlined">
-                    <SectionHeader icon={<Sparkles size={18} />}>
-                        סיכום הזמנה
-                    </SectionHeader>
+                    <SectionHeader icon={<Sparkles size={18} />}>סיכום הזמנה</SectionHeader>
                     <div className="mt-3 space-y-3">
                         {pendingOrder.items.map((item, idx) => (
                             <div key={idx} className="bg-accent-ghost/50 p-4 rounded-2xl text-body-sm space-y-3">
@@ -108,9 +103,7 @@ export const OrderFormView: React.FC<Props> = ({
                                     <div className="flex items-center gap-2">
                                         <span>{item.productName}</span>
                                         {item._isLinked && (
-                                            <span className="text-micro font-semibold bg-accent-ghost text-accent px-2 py-0.5 rounded-full border border-light">
-                                                תוספת
-                                            </span>
+                                            <span className="text-micro font-semibold bg-accent-ghost text-accent px-2 py-0.5 rounded-full border border-light">תוספת</span>
                                         )}
                                     </div>
                                     <span>₪{item.price * item.quantity}</span>
@@ -118,28 +111,18 @@ export const OrderFormView: React.FC<Props> = ({
                                 <div className="text-secondary whitespace-pre-wrap leading-relaxed pl-4 border-r-2 border-default text-caption">
                                     {item.details}
                                 </div>
-                                {/* Quantity control — hidden for linked (add-on) items */}
                                 {!item._isLinked && (
                                     <div className="flex items-center justify-between pt-1">
                                         <span className="text-caption text-muted">כמות</span>
                                         <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => updateQuantity(idx, -1)}
-                                                disabled={item.quantity <= 1}
-                                                className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white disabled:opacity-30 transition-colors"
-                                            >−</button>
+                                            <button onClick={() => updateQuantity(idx, -1)} disabled={item.quantity <= 1} className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white disabled:opacity-30 transition-colors">−</button>
                                             <span className="w-6 text-center font-bold text-primary">{item.quantity}</span>
-                                            <button
-                                                onClick={() => updateQuantity(idx, 1)}
-                                                className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white transition-colors"
-                                            >+</button>
+                                            <button onClick={() => updateQuantity(idx, 1)} className="w-8 h-8 rounded-full border border-default flex items-center justify-center text-lg font-bold text-secondary hover:bg-white transition-colors">+</button>
                                         </div>
                                     </div>
                                 )}
                                 {!item._isLinked && item.quantity > 1 && (
-                                    <div className="text-caption text-muted text-left">
-                                        ₪{item.price} × {item.quantity}
-                                    </div>
+                                    <div className="text-caption text-muted text-left">₪{item.price} × {item.quantity}</div>
                                 )}
                             </div>
                         ))}
@@ -153,88 +136,91 @@ export const OrderFormView: React.FC<Props> = ({
                 {/* 1.5 Dynamic Inputs */}
                 {pendingOrder.items.some(i => i._inputRequests && i._inputRequests.length > 0) && (
                     <BaseCard variant="outlined" className="space-y-4">
-                        <SectionHeader icon={<Edit2 size={18} />}>
-                            פרטים נוספים למוצר
-                        </SectionHeader>
+                        <SectionHeader icon={<Edit2 size={18} />}>פרטים נוספים למוצר</SectionHeader>
                         {pendingOrder.items.map((item) =>
-                            item._inputRequests?.map((req) => (
-                                <div key={req.id} className="bg-accent-ghost/30 p-4 rounded-2xl border border-light">
-                                    <h4 className="font-bold text-primary mb-3 text-body-sm flex justify-between">
-                                        {req.sourceName}
-                                        <span className="text-caption font-normal text-accent bg-white/50 px-2 rounded-full">{req.specs.label}</span>
-                                    </h4>
-                                    <div className="space-y-3">
-                                        {Array.from({ length: req.specs.count || 1 }).map((_, i) => {
-                                            const fieldKey = `${req.id}_${i}`;
-                                            const storedValue = dynamicDetails[req.id]?.[i] || '';
-                                            const isOther = otherMode[fieldKey] ?? false;
-                                            const hasChoices = req.specs.choices && req.specs.choices.length > 0;
+                            item._inputRequests?.map((req) => {
+                                const effectiveCount = req.effectiveCount ?? req.field.count;
+                                const dictChoices = req.field.type === 'dictionary' && req.field.dictionaryId
+                                    ? data.globalDictionaries?.find(d => d.id === req.field.dictionaryId)?.choices
+                                    : undefined;
+                                const hasChoices = dictChoices && dictChoices.length > 0;
 
-                                            const setValue = (val: string) => setDynamicDetails(prev => {
-                                                const updated = [...(prev[req.id] || [])];
-                                                updated[i] = val;
-                                                return { ...prev, [req.id]: updated };
-                                            });
+                                return (
+                                    <div key={req.id} className="bg-accent-ghost/30 p-4 rounded-2xl border border-light">
+                                        <h4 className="font-bold text-primary mb-3 text-body-sm flex justify-between">
+                                            {req.sourceName}
+                                            <span className="text-caption font-normal text-accent bg-white/50 px-2 rounded-full">{req.field.label}</span>
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {Array.from({ length: effectiveCount || 1 }).map((_, i) => {
+                                                const fieldKey = `${req.id}_${i}`;
+                                                const storedValue = dynamicDetails[req.id]?.[i] || '';
+                                                const isOther = otherMode[fieldKey] ?? false;
 
-                                            if (hasChoices) {
-                                                return (
-                                                    <div key={i} className="space-y-2">
-                                                        <BaseSelect
-                                                            label={`${req.specs.label} ${i + 1}`}
-                                                            className="bg-white h-10 text-body-sm"
-                                                            value={isOther ? '__other__' : (storedValue || '')}
-                                                            onChange={e => {
-                                                                if (e.target.value === '__other__') {
-                                                                    setOtherMode(prev => ({ ...prev, [fieldKey]: true }));
-                                                                    setValue('');
-                                                                } else {
-                                                                    setOtherMode(prev => ({ ...prev, [fieldKey]: false }));
-                                                                    setValue(e.target.value);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <option value="" disabled>בחר {req.specs.label}...</option>
-                                                            {req.specs.choices!.map(choice => (
-                                                                <option key={choice} value={choice}>{choice}</option>
-                                                            ))}
-                                                            <option value="__other__">אחר / הקלד בעצמך...</option>
-                                                        </BaseSelect>
-                                                        {isOther && (
-                                                            <Input
-                                                                placeholder={`הכנס ${req.specs.label} בחופשיות...`}
+                                                const setValue = (val: string) => setDynamicDetails(prev => {
+                                                    const updated = [...(prev[req.id] || [])];
+                                                    updated[i] = val;
+                                                    return { ...prev, [req.id]: updated };
+                                                });
+
+                                                if (hasChoices) {
+                                                    return (
+                                                        <div key={i} className="space-y-2">
+                                                            <BaseSelect
+                                                                label={`${req.field.label} ${effectiveCount > 1 ? i + 1 : ''}`}
                                                                 className="bg-white h-10 text-body-sm"
-                                                                value={storedValue}
-                                                                onChange={e => setValue(e.target.value)}
-                                                                autoFocus
-                                                            />
-                                                        )}
-                                                    </div>
-                                                );
-                                            }
+                                                                value={isOther ? '__other__' : (storedValue || '')}
+                                                                onChange={e => {
+                                                                    if (e.target.value === '__other__') {
+                                                                        setOtherMode(prev => ({ ...prev, [fieldKey]: true }));
+                                                                        setValue('');
+                                                                    } else {
+                                                                        setOtherMode(prev => ({ ...prev, [fieldKey]: false }));
+                                                                        setValue(e.target.value);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <option value="" disabled>בחר {req.field.label}...</option>
+                                                                {dictChoices!.map(choice => (
+                                                                    <option key={choice} value={choice}>{choice}</option>
+                                                                ))}
+                                                                <option value="__other__">אחר / הקלד בעצמך...</option>
+                                                            </BaseSelect>
+                                                            {isOther && (
+                                                                <Input
+                                                                    placeholder={`הכנס ${req.field.label} בחופשיות...`}
+                                                                    className="bg-white h-10 text-body-sm"
+                                                                    value={storedValue}
+                                                                    onChange={e => setValue(e.target.value)}
+                                                                    autoFocus
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                }
 
-                                            return (
-                                                <Input
-                                                    key={i}
-                                                    label={`${req.specs.label} ${i + 1}`}
-                                                    placeholder={`הכנס ${req.specs.label}...`}
-                                                    className="bg-white h-10 text-body-sm"
-                                                    value={storedValue}
-                                                    onChange={e => setValue(e.target.value)}
-                                                />
-                                            );
-                                        })}
+                                                return (
+                                                    <Input
+                                                        key={i}
+                                                        label={effectiveCount > 1 ? `${req.field.label} ${i + 1}` : req.field.label}
+                                                        placeholder={`הכנס ${req.field.label}...`}
+                                                        className="bg-white h-10 text-body-sm"
+                                                        value={storedValue}
+                                                        onChange={e => setValue(e.target.value)}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </BaseCard>
                 )}
 
                 {/* 2. Event Details */}
                 <div className="space-y-4">
-                    <SectionHeader icon={<Calendar size={20} />} size="lg">
-                        מתי האירוע?
-                    </SectionHeader>
+                    <SectionHeader icon={<Calendar size={20} />} size="lg">מתי האירוע?</SectionHeader>
                     <div className="flex gap-3">
                         <div className="flex-1">
                             <Input type="date" label="תאריך *" required className="bg-white" value={orderForm.eventDate} onChange={e => setOrderForm({ ...orderForm, eventDate: e.target.value })} />
@@ -247,16 +233,11 @@ export const OrderFormView: React.FC<Props> = ({
 
                 {/* 3. Customer Info */}
                 <div className="space-y-4">
-                    <SectionHeader icon={<User size={20} />} size="lg">
-                        פרטים אישיים
-                    </SectionHeader>
+                    <SectionHeader icon={<User size={20} />} size="lg">פרטים אישיים</SectionHeader>
                     <Input placeholder="שם מלא *" value={orderForm.customerName} onChange={e => setOrderForm({ ...orderForm, customerName: e.target.value })} className="bg-white" />
                     <Input type="tel" placeholder="טלפון *" value={orderForm.customerPhone} onChange={e => setOrderForm({ ...orderForm, customerPhone: e.target.value })} className="bg-white" />
                     <Input type="email" placeholder="אימייל (אופציונלי)" value={orderForm.customerEmail} onChange={e => setOrderForm({ ...orderForm, customerEmail: e.target.value })} className="bg-white" />
-                    <BaseSelect
-                        value={orderForm.customerSource}
-                        onChange={e => setOrderForm({ ...orderForm, customerSource: e.target.value })}
-                    >
+                    <BaseSelect value={orderForm.customerSource} onChange={e => setOrderForm({ ...orderForm, customerSource: e.target.value })}>
                         <option value="" disabled>איך הגעת אלינו?</option>
                         <option value="instagram">אינסטגרם</option>
                         <option value="facebook">פייסבוק</option>
@@ -268,14 +249,9 @@ export const OrderFormView: React.FC<Props> = ({
 
                 {/* 4. Delivery */}
                 <div className="space-y-4">
-                    <SectionHeader icon={<MapPin size={20} />} size="lg">
-                        משלוח / איסוף
-                    </SectionHeader>
+                    <SectionHeader icon={<MapPin size={20} />} size="lg">משלוח / איסוף</SectionHeader>
                     <ToggleGroup
-                        options={[
-                            { value: 'pickup', label: 'איסוף עצמי' },
-                            { value: 'delivery', label: 'משלוח' },
-                        ]}
+                        options={[{ value: 'pickup', label: 'איסוף עצמי' }, { value: 'delivery', label: 'משלוח' }]}
                         value={orderForm.deliveryType}
                         onChange={(v) => setOrderForm({ ...orderForm, deliveryType: v as 'pickup' | 'delivery' })}
                     />
@@ -286,17 +262,13 @@ export const OrderFormView: React.FC<Props> = ({
 
                 {/* 5. Notes */}
                 <div className="space-y-4">
-                    <SectionHeader icon={<FileText size={20} />} size="lg">
-                        הערות נוספות
-                    </SectionHeader>
+                    <SectionHeader icon={<FileText size={20} />} size="lg">הערות נוספות</SectionHeader>
                     <TextArea placeholder="בקשות מיוחדות, אלרגיות, וכו'..." rows={3} className="bg-white" value={orderForm.orderNotes} onChange={e => setOrderForm({ ...orderForm, orderNotes: e.target.value })} />
                 </div>
 
-                {/* Sticky Footer */}
                 <StickyFooter>
                     <Button fullWidth size="lg" onClick={handleSubmitOrder}>
-                        <Check className="ml-2" />
-                        שמור הזמנה
+                        <Check className="ml-2" />שמור הזמנה
                     </Button>
                 </StickyFooter>
             </div>

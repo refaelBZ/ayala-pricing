@@ -17,6 +17,7 @@ import { AdminLoginView } from './views/AdminLoginView';
 import { AdminDashboardView } from './views/AdminDashboardView';
 import { ProductEditorView } from './views/ProductEditorView';
 import { GlobalCategoryEditorView } from './views/GlobalCategoryEditorView';
+import { DictionaryManagerView } from './views/DictionaryManagerView';
 
 const App: React.FC = () => {
   const state = useAppState();
@@ -24,16 +25,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen" dir="rtl">
-      {/* Global sticky header — always visible (except in public view) */}
       {!state.isPublicView && (
         <GlobalHeader view={view} isAdmin={state.isAdmin} navigate={state.navigate} logoutAdmin={state.logoutAdmin} />
       )}
 
-      {/* Notifications */}
       <Toast message={toastMsg} show={!!toastMsg} />
       {loading && <LoadingOverlay />}
 
-      {/* View Router */}
       {view === 'HOME' && <HomeView {...state} />}
       {view === 'CALCULATOR' && <CalculatorView {...state} />}
       {view === 'ORDER_FORM' && <OrderFormView {...state} />}
@@ -44,6 +42,7 @@ const App: React.FC = () => {
       {view === 'ADMIN_DASHBOARD' && <AdminDashboardView {...state} />}
       {view === 'PRODUCT_EDITOR' && <ProductEditorView {...state} />}
       {view === 'GLOBAL_CATEGORY_EDITOR' && <GlobalCategoryEditorView {...state} />}
+      {view === 'DICTIONARY_MANAGER' && <DictionaryManagerView {...state} />}
     </div>
   );
 };

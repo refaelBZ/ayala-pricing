@@ -9,27 +9,19 @@ type Props = Pick<AppState, 'navigate' | 'showToast' | 'loginAsAdmin'>;
 export const AdminLoginView: React.FC<Props> = ({ navigate, showToast, loginAsAdmin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [busy, setBusy] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleLogin = async () => {
-        if (!email || !password) {
-            showToast('יש להזין אימייל וסיסמה');
-            return;
-        }
-        setBusy(true);
+        if (!email || !password) { showToast('נא למלא אימייל וסיסמה'); return; }
+        setIsLoading(true);
         try {
             await loginAsAdmin(email, password);
-            // onAuthStateChanged will update isAdmin; the route guard in useAppState
-            // will redirect to ORDERS_DASHBOARD automatically.
+            // onAuthStateChanged will update state and route guard will redirect
         } catch {
-            showToast('אימייל או סיסמה שגויים');
+            showToast('פרטי הכניסה שגויים');
         } finally {
-            setBusy(false);
+            setIsLoading(false);
         }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') handleLogin();
     };
 
     return (
@@ -42,32 +34,31 @@ export const AdminLoginView: React.FC<Props> = ({ navigate, showToast, loginAsAd
                 </div>
 
                 <h2 className="text-heading-2 mb-2">כניסה למנהלים</h2>
-                <p className="text-body-sm text-muted mb-6">יש להזין פרטי גישה כדי להמשיך</p>
+                <p className="text-body-sm text-muted mb-6">הזן פרטי כניסה כדי להמשיך</p>
 
                 <div className="space-y-3 mb-6">
                     <Input
                         type="email"
                         placeholder="אימייל"
-                        className="text-center bg-white/50 h-14"
+                        className="bg-white/50 h-12"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        dir="ltr"
+                        onChange={e => setEmail(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleLogin()}
                     />
                     <Input
                         type="password"
                         placeholder="סיסמה"
-                        className="text-center text-lg tracking-widest bg-white/50 h-14"
+                        className="text-center text-lg tracking-widest bg-white/50 h-12"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={handleKeyDown}
+                        onChange={e => setPassword(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleLogin()}
                     />
                 </div>
 
                 <div className="flex gap-3">
-                    <Button variant="ghost" fullWidth onClick={() => navigate('HOME')} disabled={busy}>ביטול</Button>
-                    <Button fullWidth onClick={handleLogin} className="shadow-primary-glow" disabled={busy}>
-                        {busy ? 'מתחבר...' : 'כניסה'}
+                    <Button variant="ghost" fullWidth onClick={() => navigate('HOME')}>ביטול</Button>
+                    <Button fullWidth onClick={handleLogin} disabled={isLoading} className="shadow-primary-glow">
+                        {isLoading ? '...' : 'כניסה'}
                     </Button>
                 </div>
             </div>

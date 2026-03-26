@@ -1,18 +1,39 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
-import { Product, OrderItem, InputRequest } from '../types';
+import { FormField, InputRequest, OrderItem, Product } from '../types';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
 
-interface LinkedProductModalProps {
+interface Props {
     product: Product;
     onConfirm: (item: OrderItem) => void;
     onCancel: () => void;
 }
 
-export const LinkedProductModal: React.FC<LinkedProductModalProps> = ({ product, onConfirm, onCancel }) => {
+// Same helper as in CalculatorView — compute effective tier fields
+function buildEffectiveFields(product: Product, maxTierIdx: number): { field: FormField; effectiveCount: number }[] {
+    const fields = new Map<string, { field: FormField; effectiveCount: number }>();
+
+    for (let i = 0; i <= maxTierIdx; i++) {
+        (product.tiers[i].inheritedFields || []).forEach(f => {
+            fields.set(f.id, { field: f, effectiveCount: f.count });
+        });
+    }
+    for (let i = 0; i <= maxTierIdx; i++) {
+        const overrides = product.tiers[i].overrides;
+        if (overrides) {
+            Object.entries(overrides).forEach(([fieldId, count]) => {
+                const entry = fields.get(fieldId);
+                if (entry) fields.set(fieldId, { ...entry, effectiveCount: count });
+            });
+        }
+    }
+
+    return Array.from(fields.values());
+}
+
+export const LinkedProductModal: React.FC<Props> = ({ product, onConfirm, onCancel }) => {
     const [selections, setSelections] = useState<Record<string, string | string[]>>(() => {
-        // Pre-select first option for each radio category
         const initial: Record<string, string | string[]> = {};
         product.categories.forEach(cat => {
             if (cat.type === 'radio' && cat.options.length > 0) {
@@ -22,7 +43,7 @@ export const LinkedProductModal: React.FC<LinkedProductModalProps> = ({ product,
         return initial;
     });
 
-    // ─── Price calculation (same logic as CalculatorView) ─────────────────────
+    // ─── Price calculation ─────────────────────────────────────────────────────
     const resolvedPrices: number[] = [];
     const manualPrices: number[] = [];
     const detailsList: string[] = [];
@@ -45,16 +66,14 @@ export const LinkedProductModal: React.FC<LinkedProductModalProps> = ({ product,
     });
 
     const basePrice = resolvedPrices.length > 0 ? Math.max(...resolvedPrices) : 0;
-    const addonsTotal = manualPrices.reduce((sum, p) => sum + p, 0);
-    const total = basePrice + addonsTotal;
+    const total = basePrice + manualPrices.reduce((s, p) => s + p, 0);
 
-    // ─── Confirm handler ──────────────────────────────────────────────────────
+    // ─── Confirm: build InputRequests from new data model ─────────────────────
     const handleConfirm = () => {
         const inputRequests: InputRequest[] = [];
         let maxTierIdx = -1;
         let maxTierPrice = -1;
 
-        // Find Max Tier
         product.categories.forEach(cat => {
             const selection = selections[cat.id];
             if (!selection) return;
@@ -63,40 +82,38 @@ export const LinkedProductModal: React.FC<LinkedProductModalProps> = ({ product,
                 const opt = cat.options.find(o => o.id === id);
                 if (opt && opt.linkTier >= 0 && opt.linkTier < product.tiers.length) {
                     const tierPrice = product.tiers[opt.linkTier].price;
-                    if (tierPrice > maxTierPrice) {
-                        maxTierPrice = tierPrice;
-                        maxTierIdx = opt.linkTier;
-                    }
+                    if (tierPrice > maxTierPrice) { maxTierPrice = tierPrice; maxTierIdx = opt.linkTier; }
                 }
             });
         });
 
-        // Tier-level includedSpecs
+        // Base fields
+        (product.baseFields || []).forEach((field, idx) => {
+            inputRequests.push({ id: `linked-base-${idx}`, sourceName: product.name, field });
+        });
+
+        // Tier inherited fields
         if (maxTierIdx >= 0) {
-            const tier = product.tiers[maxTierIdx];
-            if (tier.includedSpecs) {
-                tier.includedSpecs.forEach((spec, idx) => {
-                    inputRequests.push({
-                        id: `linked-tier-${maxTierIdx}-${idx}`,
-                        sourceName: `רמת ${tier.name}`,
-                        specs: spec
-                    });
+            buildEffectiveFields(product, maxTierIdx).forEach(({ field, effectiveCount }) => {
+                inputRequests.push({
+                    id: `linked-tier-${field.id}`,
+                    sourceName: `רמת ${product.tiers[maxTierIdx].name}`,
+                    field,
+                    effectiveCount
                 });
-            }
+            });
         }
 
-        // Option-level formInputs
+        // Triggered fields from selected options
         product.categories.forEach(cat => {
             const selection = selections[cat.id];
             if (!selection) return;
             const ids = Array.isArray(selection) ? selection : [selection];
             ids.forEach(id => {
                 const opt = cat.options.find(o => o.id === id);
-                if (opt && opt.formInputs) {
-                    inputRequests.push({
-                        id: `linked-opt-${opt.id}`,
-                        sourceName: opt.name,
-                        specs: opt.formInputs
+                if (opt?.triggeredFields?.length) {
+                    opt.triggeredFields.forEach((field, i) => {
+                        inputRequests.push({ id: `linked-opt-${opt.id}-${i}`, sourceName: opt.name, field });
                     });
                 }
             });
@@ -116,32 +133,20 @@ export const LinkedProductModal: React.FC<LinkedProductModalProps> = ({ product,
     };
 
     return (
-        /* Backdrop */
         <div
             className="fixed inset-0 z-50 flex items-end justify-center"
             style={{ background: 'rgba(30,10,5,0.55)', backdropFilter: 'blur(4px)' }}
             onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
         >
-            {/* Modal Sheet */}
-            <div
-                className="glass-panel w-full max-w-lg rounded-t-3xl shadow-soft flex flex-col"
-                style={{ maxHeight: '90dvh' }}
-            >
-                {/* Header */}
+            <div className="glass-panel w-full max-w-lg rounded-t-3xl shadow-soft flex flex-col" style={{ maxHeight: '90dvh' }}>
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-subtle shrink-0">
                     <div>
                         <p className="text-caption text-muted mb-0.5">תוספת למוצר</p>
                         <h2 className="font-heading font-bold text-heading-3 text-primary">{product.name}</h2>
                     </div>
-                    <IconButton
-                        icon={<X size={20} />}
-                        variant="ghost"
-                        onClick={onCancel}
-                        label="סגור"
-                    />
+                    <IconButton icon={<X size={20} />} variant="ghost" onClick={onCancel} label="סגור" />
                 </div>
 
-                {/* Scrollable categories */}
                 <div className="overflow-y-auto flex-1 px-6 py-5 space-y-7" dir="rtl">
                     {product.categories.map(cat => (
                         <div key={cat.id} className="space-y-3">
@@ -155,11 +160,7 @@ export const LinkedProductModal: React.FC<LinkedProductModalProps> = ({ product,
                                             <button
                                                 key={opt.id}
                                                 onClick={() => setSelections(prev => ({ ...prev, [cat.id]: opt.id }))}
-                                                className={`relative p-3.5 rounded-2xl text-right transition-all duration-base flex items-center justify-between ${
-                                                    isSelected
-                                                        ? 'bg-white shadow-md ring-2 ring-accent-muted'
-                                                        : 'bg-white/60 hover:bg-white shadow-sm ring-1 ring-transparent hover:ring-accent-ghost'
-                                                }`}
+                                                className={`relative p-3.5 rounded-2xl text-right transition-all duration-base flex items-center justify-between ${isSelected ? 'bg-white shadow-md ring-2 ring-accent-muted' : 'bg-white/60 hover:bg-white shadow-sm ring-1 ring-transparent hover:ring-accent-ghost'}`}
                                             >
                                                 <span className={`font-medium text-body-sm ${isSelected ? 'text-primary' : 'text-secondary'}`}>{opt.name}</span>
                                                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-base ${isSelected ? 'border-accent-soft bg-accent-soft' : 'border-default bg-transparent'}`}>
@@ -178,16 +179,12 @@ export const LinkedProductModal: React.FC<LinkedProductModalProps> = ({ product,
                                             <div
                                                 key={opt.id}
                                                 onClick={() => {
-                                                    const newSelection = isSelected
+                                                    const newSel = isSelected
                                                         ? currentSelected.filter(id => id !== opt.id)
                                                         : [...currentSelected, opt.id];
-                                                    setSelections(prev => ({ ...prev, [cat.id]: newSelection }));
+                                                    setSelections(prev => ({ ...prev, [cat.id]: newSel }));
                                                 }}
-                                                className={`relative p-3.5 rounded-2xl cursor-pointer transition-all duration-base flex items-center justify-between ${
-                                                    isSelected
-                                                        ? 'bg-white shadow-md ring-2 ring-accent-muted'
-                                                        : 'bg-white/60 hover:bg-white shadow-sm'
-                                                }`}
+                                                className={`relative p-3.5 rounded-2xl cursor-pointer transition-all duration-base flex items-center justify-between ${isSelected ? 'bg-white shadow-md ring-2 ring-accent-muted' : 'bg-white/60 hover:bg-white shadow-sm'}`}
                                             >
                                                 <span className={`font-medium text-body-sm ${isSelected ? 'text-primary' : 'text-secondary'}`}>{opt.name}</span>
                                                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-base ${isSelected ? 'bg-accent-soft border-accent-soft' : 'border-default'}`}>
@@ -202,20 +199,14 @@ export const LinkedProductModal: React.FC<LinkedProductModalProps> = ({ product,
                     ))}
                 </div>
 
-                {/* Footer */}
                 <div className="shrink-0 px-6 py-4 border-t border-subtle">
                     <div className="flex items-center gap-4">
                         <div className="flex-1">
                             <span className="text-caption text-muted block">מחיר תוספת</span>
                             <span className="text-2xl font-heading font-bold text-primary">₪{total}</span>
                         </div>
-                        <Button
-                            variant="primary"
-                            className="px-8 h-12 rounded-2xl font-bold"
-                            onClick={handleConfirm}
-                        >
-                            <Check size={18} />
-                            אישור
+                        <Button variant="primary" className="px-8 h-12 rounded-2xl font-bold" onClick={handleConfirm}>
+                            <Check size={18} />אישור
                         </Button>
                     </div>
                 </div>

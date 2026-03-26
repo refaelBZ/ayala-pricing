@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AppData, Product, Order, OrderItem, ViewState, GlobalCategory } from '../types';
-import { fetchProducts, fetchOrders, fetchOrderById, fetchGlobalCategories, auth, onAuthStateChanged, loginAdmin, logoutAdmin as firebaseLogout, User } from '../services/storage';
+import { AppData, Product, Order, OrderItem, ViewState, GlobalCategory, GlobalDictionary } from '../types';
+import {
+    fetchProducts, fetchOrders, fetchOrderById,
+    fetchGlobalCategories, fetchGlobalDictionaries,
+    auth, onAuthStateChanged, loginAdmin, logoutAdmin as firebaseLogout, User
+} from '../services/storage';
 
 export type OrderFormState = {
     customerName: string;
@@ -28,8 +32,12 @@ const EMPTY_ORDER_FORM: OrderFormState = {
 
 // ─── URL ↔ ViewState mapping ─────────────────────────────────────────────────
 
-/** Build a URL path for a given ViewState + optional payload IDs. */
-function viewToPath(view: ViewState, payload?: { orderId?: string; productId?: string; globalCategoryId?: string }): string {
+function viewToPath(view: ViewState, payload?: {
+    orderId?: string;
+    productId?: string;
+    globalCategoryId?: string;
+    dictionaryId?: string;
+}): string {
     switch (view) {
         case 'HOME': return '/';
         case 'CALCULATOR': return '/calculator';
@@ -42,17 +50,22 @@ function viewToPath(view: ViewState, payload?: { orderId?: string; productId?: s
         case 'PRODUCT_EDITOR': return payload?.productId ? `/admin/products/${payload.productId}` : '/admin/products';
         case 'GLOBAL_CATEGORY_EDITOR': return payload?.globalCategoryId
             ? `/admin/global-categories/${payload.globalCategoryId}` : '/admin/products';
+        case 'DICTIONARY_MANAGER': return '/admin/dictionaries';
         default: return '/';
     }
 }
 
-/** Parse the current URL into a ViewState + any extracted IDs. */
-function parsePath(): { view: ViewState; orderId?: string; productId?: string; globalCategoryId?: string; isPublic?: boolean } {
+function parsePath(): {
+    view: ViewState;
+    orderId?: string;
+    productId?: string;
+    globalCategoryId?: string;
+    isPublic?: boolean;
+} {
     const path = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
     const publicOrderId = params.get('orderId');
 
-    // Public share URL: /?orderId=<uuid>
     if (publicOrderId) {
         return { view: 'ORDER_DETAILS', orderId: publicOrderId, isPublic: true };
     }
@@ -63,20 +76,17 @@ function parsePath(): { view: ViewState; orderId?: string; productId?: string; g
     if (path === '/orders') return { view: 'ORDERS_DASHBOARD' };
     if (path === '/admin') return { view: 'ADMIN_LOGIN' };
     if (path === '/admin/products') return { view: 'ADMIN_DASHBOARD' };
+    if (path === '/admin/dictionaries') return { view: 'DICTIONARY_MANAGER' };
 
-    // /orders/:id/edit
     const orderEditMatch = path.match(/^\/orders\/([^/]+)\/edit$/);
     if (orderEditMatch) return { view: 'ORDER_EDIT', orderId: orderEditMatch[1] };
 
-    // /orders/:id
     const orderDetailMatch = path.match(/^\/orders\/([^/]+)$/);
     if (orderDetailMatch) return { view: 'ORDER_DETAILS', orderId: orderDetailMatch[1] };
 
-    // /admin/products/:id
     const productEditorMatch = path.match(/^\/admin\/products\/([^/]+)$/);
     if (productEditorMatch) return { view: 'PRODUCT_EDITOR', productId: productEditorMatch[1] };
 
-    // /admin/global-categories/:id
     const globalCatMatch = path.match(/^\/admin\/global-categories\/([^/]+)$/);
     if (globalCatMatch) return { view: 'GLOBAL_CATEGORY_EDITOR', globalCategoryId: globalCatMatch[1] };
 
@@ -87,23 +97,19 @@ function parsePath(): { view: ViewState; orderId?: string; productId?: string; g
 
 export const useAppState = () => {
     // --- Core State ---
-    const [data, setData] = useState<AppData>({ products: [], globalCategories: [] });
+    const [data, setData] = useState<AppData>({ products: [], globalCategories: [], globalDictionaries: [] });
     const [loading, setLoading] = useState(true);
     const [toastMsg, setToastMsg] = useState('');
     const [isPublicView, setIsPublicView] = useState(false);
 
-    // Resolve initial view from current URL (once, on module init)
     const initialParsed = parsePath();
     const [view, setViewInternal] = useState<ViewState>(initialParsed.view);
 
     // --- Admin State (Firebase Auth) ---
-    // null = not yet resolved, User = authenticated, false = unauthenticated
     const [firebaseUser, setFirebaseUser] = useState<User | null | false>(null);
     const isAdmin = !!firebaseUser;
-    // authReady: true once onAuthStateChanged fires for the first time
     const [authReady, setAuthReady] = useState(false);
 
-    // Subscribe to Firebase Auth state on mount
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
             setFirebaseUser(user ?? false);
@@ -113,13 +119,10 @@ export const useAppState = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Login: call Firebase Auth, no longer touches localStorage
     const loginAsAdmin = async (email: string, password: string): Promise<void> => {
         await loginAdmin(email, password);
-        // onAuthStateChanged will update firebaseUser automatically
     };
 
-    // Logout: call Firebase Auth signOut (navigation handled by route guard and/or caller)
     const logoutAdmin = async () => {
         await firebaseLogout();
     };
@@ -133,24 +136,25 @@ export const useAppState = () => {
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [selections, setSelections] = useState<Record<string, string | string[]>>({});
 
-    // --- Product Editor State ---
+    // --- Editor States ---
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-    // --- Global Category Editor State ---
     const [editingGlobalCategory, setEditingGlobalCategory] = useState<GlobalCategory | null>(null);
+    const [editingDictionary, setEditingDictionary] = useState<GlobalDictionary | null>(null);
 
     // --- Order Form State ---
     const [pendingOrder, setPendingOrder] = useState<{ items: OrderItem[]; totalPrice: number } | null>(null);
     const [dynamicDetails, setDynamicDetails] = useState<Record<string, string[]>>({});
     const [orderForm, setOrderForm] = useState<OrderFormState>(EMPTY_ORDER_FORM);
 
-
     // --- Data Loading ---
     const loadData = async () => {
         setLoading(true);
-        // Products and global categories are publicly readable; orders require admin auth.
-        const [products, globalCategories] = await Promise.all([fetchProducts(), fetchGlobalCategories()]);
-        setData({ products, globalCategories });
+        const [products, globalCategories, globalDictionaries] = await Promise.all([
+            fetchProducts(),
+            fetchGlobalCategories(),
+            fetchGlobalDictionaries()
+        ]);
+        setData({ products, globalCategories, globalDictionaries });
 
         if (isAdmin) {
             try {
@@ -167,69 +171,65 @@ export const useAppState = () => {
         setLoading(false);
     };
 
-    // Load data once auth state is resolved
     useEffect(() => {
         if (!authReady) return;
         loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authReady, isAdmin]);
 
-    // --- Navigate function: updates view state AND URL ────────────────────────
+    // --- Navigate ---
     const navigate = useCallback((
         newView: ViewState,
-        payload?: { orderId?: string; productId?: string; globalCategoryId?: string; order?: Order; product?: Product; globalCategory?: GlobalCategory }
+        payload?: {
+            orderId?: string;
+            productId?: string;
+            globalCategoryId?: string;
+            dictionaryId?: string;
+            order?: Order;
+            product?: Product;
+            globalCategory?: GlobalCategory;
+            dictionary?: GlobalDictionary;
+        }
     ) => {
         const urlPath = viewToPath(newView, payload);
         window.history.pushState({}, '', urlPath);
         setViewInternal(newView);
 
-        // Set related state if payload provided
         if (payload?.order) setSelectedOrder(payload.order);
         if (payload?.product) setEditingProduct(payload.product);
         if (payload?.globalCategory) setEditingGlobalCategory(payload.globalCategory);
+        if (payload?.dictionary) setEditingDictionary(payload.dictionary);
     }, []);
 
-    // --- On-mount: resolve view from URL and set related state once data loads ─
+    // --- On-mount: resolve view from URL ---
     useEffect(() => {
         const parsed = parsePath();
 
-        // Handle public ?orderId= URL
         if (parsed.isPublic) {
             setIsPublicView(true);
         }
 
-        // For transient views (ORDER_FORM, CALCULATOR) that can't be restored from URL alone,
-        // fall back to HOME gracefully
         if (parsed.view === 'ORDER_FORM' || parsed.view === 'CALCULATOR') {
             setViewInternal('HOME');
             window.history.replaceState({}, '', '/');
             return;
         }
 
-        // Persist the parsed IDs for resolving once data is loaded
-        if (parsed.orderId) {
-            sessionStorage.setItem('_pendingOrderId', parsed.orderId);
-        }
-        if (parsed.productId) {
-            sessionStorage.setItem('_pendingProductId', parsed.productId);
-        }
-        if (parsed.globalCategoryId) {
-            sessionStorage.setItem('_pendingGlobalCategoryId', parsed.globalCategoryId);
-        }
+        if (parsed.orderId) sessionStorage.setItem('_pendingOrderId', parsed.orderId);
+        if (parsed.productId) sessionStorage.setItem('_pendingProductId', parsed.productId);
+        if (parsed.globalCategoryId) sessionStorage.setItem('_pendingGlobalCategoryId', parsed.globalCategoryId);
     }, []);
 
-    // --- Resolve pending IDs once orders/products are loaded ─────────────────
+    // --- Resolve pending IDs once data loads ---
     useEffect(() => {
         if (loading) return;
 
         const pendingOrderId = sessionStorage.getItem('_pendingOrderId');
         if (pendingOrderId) {
-            // Try to find the order in the loaded list (admin path)
             const order = orders.find(o => o.id === pendingOrderId);
             if (order) {
                 setSelectedOrder(order);
             } else {
-                // Public path: fetch the single order by ID (allowed by Firestore rules)
                 fetchOrderById(pendingOrderId).then(fetchedOrder => {
                     if (fetchedOrder) {
                         setSelectedOrder(fetchedOrder);
@@ -267,42 +267,42 @@ export const useAppState = () => {
         }
     }, [loading]);
 
-    // --- Route guard: redirect unauthenticated users away from admin views ────
-    // Runs whenever auth state resolves or the view changes
+    // --- Route guard ---
     useEffect(() => {
-        if (!authReady) return; // don't redirect before auth is resolved
+        if (!authReady) return;
 
         const parsed = parsePath();
-        const adminOnlyViews: ViewState[] = ['ORDERS_DASHBOARD', 'ADMIN_DASHBOARD', 'ORDER_EDIT', 'PRODUCT_EDITOR', 'GLOBAL_CATEGORY_EDITOR'];
+        const adminOnlyViews: ViewState[] = [
+            'ORDERS_DASHBOARD', 'ADMIN_DASHBOARD', 'ORDER_EDIT',
+            'PRODUCT_EDITOR', 'GLOBAL_CATEGORY_EDITOR', 'DICTIONARY_MANAGER'
+        ];
 
         if (adminOnlyViews.includes(view) && !isAdmin) {
             setViewInternal('ADMIN_LOGIN');
             window.history.replaceState({}, '', '/admin');
         }
 
-        // ORDER_DETAILS is allowed for both admin and public (share link)
-        // but only if isPublic is detected correctly above — no redirect needed
         if (parsed.view === 'ADMIN_LOGIN' && isAdmin) {
-            // Already logged in, send to dashboard
             setViewInternal('ORDERS_DASHBOARD');
             window.history.replaceState({}, '', '/orders');
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authReady, isAdmin, view]);
 
-    // --- Browser Back/Forward (popstate) ─────────────────────────────────────
+    // --- Browser Back/Forward ---
     useEffect(() => {
         const handlePopState = () => {
             const parsed = parsePath();
 
-            // Transient views fall back to HOME
             if (parsed.view === 'ORDER_FORM' || parsed.view === 'CALCULATOR') {
                 setViewInternal('HOME');
                 return;
             }
 
-            // Admin protection (client-side layer; Firestore rules are the real guard)
-            const adminOnlyViews: ViewState[] = ['ORDERS_DASHBOARD', 'ADMIN_DASHBOARD', 'ORDER_EDIT', 'PRODUCT_EDITOR', 'GLOBAL_CATEGORY_EDITOR'];
+            const adminOnlyViews: ViewState[] = [
+                'ORDERS_DASHBOARD', 'ADMIN_DASHBOARD', 'ORDER_EDIT',
+                'PRODUCT_EDITOR', 'GLOBAL_CATEGORY_EDITOR', 'DICTIONARY_MANAGER'
+            ];
             if (adminOnlyViews.includes(parsed.view) && !isAdmin) {
                 setViewInternal('ADMIN_LOGIN');
                 window.history.replaceState({}, '', '/admin');
@@ -312,7 +312,6 @@ export const useAppState = () => {
             setViewInternal(parsed.view);
             setIsPublicView(!!parsed.isPublic);
 
-            // Resolve related state from the restored URL
             if (parsed.orderId) {
                 const order = orders.find(o => o.id === parsed.orderId);
                 if (order) setSelectedOrder(order);
@@ -353,7 +352,7 @@ export const useAppState = () => {
         // Navigation
         view,
         navigate,
-        /** @deprecated Use navigate() instead. Only kept for compatibility during migration. */
+        /** @deprecated Use navigate() instead */
         setView: navigate as (v: ViewState) => void,
 
         // Admin
@@ -368,11 +367,10 @@ export const useAppState = () => {
         selectedProductId, setSelectedProductId,
         selections, setSelections,
 
-        // Product Editor
+        // Editors
         editingProduct, setEditingProduct,
-
-        // Global Category Editor
         editingGlobalCategory, setEditingGlobalCategory,
+        editingDictionary, setEditingDictionary,
 
         // Order Form
         pendingOrder, setPendingOrder,

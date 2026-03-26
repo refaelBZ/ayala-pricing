@@ -1,12 +1,12 @@
 import React from 'react';
-import { Trash2, Edit2, Plus } from 'lucide-react';
+import { Trash2, Edit2, Plus, BookOpen } from 'lucide-react';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
 import { BaseCard } from '../components/BaseCard';
 import { StickyFooter } from '../components/StickyFooter';
 import { IconButton } from '../components/IconButton';
 import { deleteProductFromFirestore, deleteGlobalCategoryFromFirestore, generateUUID } from '../services/storage';
-import { GlobalCategory } from '../types';
+import { GlobalCategory, Product } from '../types';
 
 type Props = Pick<AppState, 'data' | 'navigate' | 'setEditingProduct' | 'setEditingGlobalCategory' | 'setLoading' | 'loadData' | 'logoutAdmin'>;
 
@@ -20,6 +20,7 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                 </div>
             </header>
 
+            {/* Products */}
             <div className="space-y-4">
                 {data.products.map(product => (
                     <BaseCard key={product.id} variant="outlined" className="flex items-center justify-between">
@@ -29,6 +30,11 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                                 <span className="text-caption bg-accent-ghost text-accent px-2 py-1 rounded-lg font-medium border border-light">
                                     {product.tiers.length} רמות מחיר
                                 </span>
+                                {(product.baseFields?.length ?? 0) > 0 && (
+                                    <span className="text-caption bg-accent-ghost text-accent px-2 py-1 rounded-lg font-medium border border-light">
+                                        {product.baseFields!.length} שדות בסיס
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <div className="flex gap-2">
@@ -56,7 +62,7 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                 ))}
             </div>
 
-            {/* Global Categories Section */}
+            {/* Global Categories */}
             <h2 className="text-xl font-bold mt-10 mb-4">קטגוריות גלובליות</h2>
             <div className="space-y-4">
                 {data.globalCategories.map(gc => (
@@ -92,18 +98,42 @@ export const AdminDashboardView: React.FC<Props> = ({ data, navigate, setEditing
                 ))}
             </div>
 
+            {/* Global Dictionaries */}
+            <h2 className="text-xl font-bold mt-10 mb-4">מאגרי מאפיינים גלובליים</h2>
+            <div className="space-y-3">
+                {data.globalDictionaries.length === 0 ? (
+                    <p className="text-caption text-muted">אין מאגרי מאפיינים — צור מאגר ראשון כדי לשתף רשימות אפשרויות בין שדות.</p>
+                ) : (
+                    data.globalDictionaries.map(dict => (
+                        <BaseCard key={dict.id} variant="outlined" className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-primary">{dict.name}</h3>
+                                <span className="text-caption text-secondary">{dict.choices.slice(0, 4).join(', ')}{dict.choices.length > 4 ? `...` : ''}</span>
+                            </div>
+                        </BaseCard>
+                    ))
+                )}
+                <button
+                    onClick={() => navigate('DICTIONARY_MANAGER')}
+                    className="w-full py-3 border border-dashed border-default rounded-xl text-accent font-medium hover:bg-accent-ghost transition-all duration-base flex items-center justify-center gap-2 text-body-sm"
+                >
+                    <BookOpen size={16} />
+                    נהל מאגרי מאפיינים גלובליים
+                </button>
+            </div>
+
             <StickyFooter>
                 <div className="flex gap-3">
                     <Button
                         fullWidth
                         onClick={() => {
-                            const newProduct = {
+                            const newProduct: Product = {
                                 id: generateUUID(),
                                 name: '',
                                 tiers: [
-                                    { name: 'Basic', price: 0 },
-                                    { name: 'Plus', price: 0 },
-                                    { name: 'Extra', price: 0 }
+                                    { name: 'Basic', price: 0, inheritedFields: [] },
+                                    { name: 'Plus', price: 0, inheritedFields: [] },
+                                    { name: 'Extra', price: 0, inheritedFields: [] }
                                 ],
                                 messageTemplate: "היי! הצעת מחיר עבור {product}:\n{details}\nסה\"כ: {price} ₪",
                                 categories: []

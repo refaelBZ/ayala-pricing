@@ -15,7 +15,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ view, isAdmin, navig
 
     const isCalculatorActive = view === 'HOME' || view === 'CALCULATOR' || view === 'ORDER_FORM';
     const isOrdersActive = view === 'ORDERS_DASHBOARD' || view === 'ORDER_DETAILS' || view === 'ORDER_EDIT';
-    const isDashboardActive = view === 'ADMIN_DASHBOARD' || view === 'PRODUCT_EDITOR';
+    const isDashboardActive = view === 'ADMIN_DASHBOARD' || view === 'PRODUCT_EDITOR' || view === 'GLOBAL_CATEGORY_EDITOR' || view === 'DICTIONARY_MANAGER';
 
     const activeTabClass = 'bg-primary text-on-primary shadow-lg shadow-primary-glow';
     const inactiveTabClass = 'text-secondary hover:text-primary hover:bg-accent-ghost';

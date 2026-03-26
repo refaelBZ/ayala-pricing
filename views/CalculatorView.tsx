@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Copy, ChevronRight, Check } from 'lucide-react';
-import { InputRequest, OrderItem } from '../types';
+import { FormField, InputRequest, OrderItem, Product } from '../types';
 import { AppState } from '../hooks/useAppState';
 import { Button } from '../components/Button';
 import { SubHeader } from '../components/SubHeader';
@@ -9,13 +9,36 @@ import { LinkedProductModal } from '../components/LinkedProductModal';
 
 type Props = Pick<AppState, 'data' | 'selectedProductId' | 'selections' | 'setSelections' | 'navigate' | 'setPendingOrder' | 'setDynamicDetails' | 'showToast'>;
 
+// ─── Helper: compute effective tier fields (cumulative + overrides) ────────────
+function buildEffectiveFields(product: Product, maxTierIdx: number): { field: FormField; effectiveCount: number }[] {
+    const fields = new Map<string, { field: FormField; effectiveCount: number }>();
+
+    for (let i = 0; i <= maxTierIdx; i++) {
+        (product.tiers[i].inheritedFields || []).forEach(f => {
+            fields.set(f.id, { field: f, effectiveCount: f.count });
+        });
+    }
+
+    for (let i = 0; i <= maxTierIdx; i++) {
+        const overrides = product.tiers[i].overrides;
+        if (overrides) {
+            Object.entries(overrides).forEach(([fieldId, count]) => {
+                const entry = fields.get(fieldId);
+                if (entry) fields.set(fieldId, { ...entry, effectiveCount: count });
+            });
+        }
+    }
+
+    return Array.from(fields.values());
+}
+
 export const CalculatorView: React.FC<Props> = ({
     data, selectedProductId, selections, setSelections, navigate, setPendingOrder, setDynamicDetails, showToast
 }) => {
     const product = data.products.find(p => p.id === selectedProductId);
     if (!product) return null;
 
-    // ─── Local state for linked-product modal queue ───────────────────────────
+    // ─── Linked-product modal queue ───────────────────────────────────────────
     const [linkedProductQueue, setLinkedProductQueue] = useState<string[]>([]);
     const [pendingMainItem, setPendingMainItem] = useState<OrderItem | null>(null);
     const [collectedLinkedItems, setCollectedLinkedItems] = useState<OrderItem[]>([]);
@@ -25,13 +48,13 @@ export const CalculatorView: React.FC<Props> = ({
         ? data.products.find(p => p.id === activeLinkedProductId) ?? null
         : null;
 
-    // ─── Merge product categories + applicable global categories ─────────────
+    // ─── Merge product + applicable global categories ─────────────────────────
     const applicableGlobalCats = data.globalCategories.filter(
         gc => gc.targetProductIds.includes(selectedProductId!)
     );
     const allCategories = [...product.categories, ...applicableGlobalCats];
 
-    // ─── Dynamic Tier Linking Logic ───────────────────────────────────────────
+    // ─── Price calculation ────────────────────────────────────────────────────
     let total = 0;
     const resolvedPrices: number[] = [];
     const detailsList: string[] = [];
@@ -58,7 +81,7 @@ export const CalculatorView: React.FC<Props> = ({
     const addonsTotal = manualPrices.reduce((sum, p) => sum + p, 0);
     total = basePrice + addonsTotal;
 
-    // ─── Build the main OrderItem + input requests ────────────────────────────
+    // ─── Build main OrderItem + input requests ────────────────────────────────
     const buildMainItem = (): { item: OrderItem; linkedProductIds: string[] } => {
         const inputRequests: InputRequest[] = [];
         let maxTierIdx = -1;
@@ -86,31 +109,41 @@ export const CalculatorView: React.FC<Props> = ({
             });
         });
 
-        // The max tier's includedSpecs is the complete, explicit list of fields for that price level.
-        // Inherited fields from lower tiers are pre-populated by the admin in the Product Editor.
+        // 1. Base fields (always appear)
+        (product.baseFields || []).forEach((field, idx) => {
+            inputRequests.push({
+                id: `base-${idx}`,
+                sourceName: product.name,
+                field
+            });
+        });
+
+        // 2. Effective tier fields (cumulative inherited + overrides)
         if (maxTierIdx >= 0) {
-            product.tiers[maxTierIdx].includedSpecs?.forEach((spec, specIdx) => {
+            const effectiveFields = buildEffectiveFields(product, maxTierIdx);
+            effectiveFields.forEach(({ field, effectiveCount }) => {
                 inputRequests.push({
-                    id: `tier-${maxTierIdx}-${specIdx}`,
+                    id: `tier-field-${field.id}`,
                     sourceName: product.tiers[maxTierIdx].name,
-                    specs: spec
+                    field,
+                    effectiveCount
                 });
             });
         }
 
-        // Option formInputs
+        // 3. Triggered fields from selected options
         allCategories.forEach(cat => {
             const selection = selections[cat.id];
             if (!selection) return;
             const ids = Array.isArray(selection) ? selection : [selection];
             ids.forEach(id => {
                 const opt = cat.options.find(o => o.id === id);
-                if (opt && opt.formInputs?.length) {
-                    opt.formInputs.forEach((spec, specIdx) => {
+                if (opt?.triggeredFields?.length) {
+                    opt.triggeredFields.forEach((field, specIdx) => {
                         inputRequests.push({
                             id: `${opt.id}_${specIdx}`,
                             sourceName: opt.name,
-                            specs: spec
+                            field
                         });
                     });
                 }
@@ -134,12 +167,10 @@ export const CalculatorView: React.FC<Props> = ({
         const { item, linkedProductIds } = buildMainItem();
 
         if (linkedProductIds.length > 0) {
-            // Kick off the modal queue
             setPendingMainItem(item);
             setCollectedLinkedItems([]);
             setLinkedProductQueue(linkedProductIds);
         } else {
-            // No linked products — go straight to order form
             setPendingOrder({ items: [item], totalPrice: total });
             setDynamicDetails({});
             navigate('ORDER_FORM');
@@ -152,7 +183,6 @@ export const CalculatorView: React.FC<Props> = ({
         const remainingQueue = linkedProductQueue.slice(1);
 
         if (remainingQueue.length === 0) {
-            // All linked products configured — assemble the full order
             const allItems = [pendingMainItem!, ...newLinked];
             const totalPrice = allItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
             setPendingOrder({ items: allItems, totalPrice });
@@ -183,10 +213,8 @@ export const CalculatorView: React.FC<Props> = ({
 
     return (
         <div className="min-h-screen flex flex-col">
-            {/* Sub-header */}
             <SubHeader title={product.name} onBack={() => navigate('HOME')} />
 
-            {/* Content */}
             <div className="p-6 pb-40 space-y-8 overflow-y-auto">
                 {allCategories.map(cat => (
                     <div key={cat.id} className="space-y-4">
