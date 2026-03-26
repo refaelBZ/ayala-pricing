@@ -49,20 +49,32 @@ export const DictionaryManagerView: React.FC<Props> = ({ data, navigate, setLoad
         if (choices.length === 0) { showToast('נא להזין לפחות אפשרות אחת'); return; }
 
         setLoading(true);
-        await saveGlobalDictionaryToFirestore({ ...draft, choices });
-        await loadData();
-        setLoading(false);
-        cancelEdit();
-        showToast('המילון נשמר בהצלחה');
+        try {
+            await saveGlobalDictionaryToFirestore({ ...draft, choices });
+            await loadData();
+            cancelEdit();
+            showToast('המילון נשמר בהצלחה');
+        } catch (e) {
+            console.error(e);
+            showToast('שגיאה בשמירת המילון — בדוק הרשאות Firestore');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const deleteDictionary = async (id: string) => {
         if (!window.confirm('למחוק מילון זה? שדות המשתמשים בו לא ישפיעו מיידית.')) return;
         setLoading(true);
-        await deleteGlobalDictionaryFromFirestore(id);
-        await loadData();
-        setLoading(false);
-        showToast('המילון נמחק');
+        try {
+            await deleteGlobalDictionaryFromFirestore(id);
+            await loadData();
+            showToast('המילון נמחק');
+        } catch (e) {
+            console.error(e);
+            showToast('שגיאה במחיקת המילון — בדוק הרשאות Firestore');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const dictionaries = data.globalDictionaries;

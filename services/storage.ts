@@ -208,8 +208,13 @@ export const deleteProductFromFirestore = async (productId: string): Promise<voi
 // ─── Global Categories ────────────────────────────────────────────────────────
 
 export const fetchGlobalCategories = async (): Promise<GlobalCategory[]> => {
-  const snap = await getDocs(collection(db, GLOBAL_CATEGORIES_COLLECTION));
-  return snap.docs.map(d => d.data() as GlobalCategory);
+  try {
+    const snap = await getDocs(collection(db, GLOBAL_CATEGORIES_COLLECTION));
+    return snap.docs.map(d => d.data() as GlobalCategory);
+  } catch (error) {
+    console.error("Error fetching global categories:", error);
+    return [];
+  }
 };
 
 export const saveGlobalCategoryToFirestore = async (gc: GlobalCategory): Promise<void> => {
@@ -224,8 +229,13 @@ export const deleteGlobalCategoryFromFirestore = async (id: string): Promise<voi
 // ─── Global Dictionaries ──────────────────────────────────────────────────────
 
 export const fetchGlobalDictionaries = async (): Promise<GlobalDictionary[]> => {
-  const snap = await getDocs(collection(db, GLOBAL_DICTIONARIES_COLLECTION));
-  return snap.docs.map(d => d.data() as GlobalDictionary);
+  try {
+    const snap = await getDocs(collection(db, GLOBAL_DICTIONARIES_COLLECTION));
+    return snap.docs.map(d => d.data() as GlobalDictionary);
+  } catch (error) {
+    console.error("Error fetching global dictionaries:", error);
+    return [];
+  }
 };
 
 export const saveGlobalDictionaryToFirestore = async (dict: GlobalDictionary): Promise<void> => {
