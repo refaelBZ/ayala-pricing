@@ -1,0 +1,42 @@
+@import '../../styles/mixins';
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem; // gap-1
+  padding: 0.25rem 0.5rem; // px-2 py-1
+  border-radius: $radius-md;
+  font-size: 10px; // text-[10px]
+  font-weight: 700;
+  border: 1px solid transparent;
+
+  &.success {
+    background-color: var(--color-success-bg);
+    color: var(--color-success-text);
+    border-color: var(--color-success-border);
+  }
+
+  &.warning {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning-text);
+    border-color: var(--color-warning-border);
+  }
+
+  &.danger {
+    background-color: var(--color-danger-bg);
+    color: var(--color-danger-text);
+    border-color: var(--color-danger-border);
+  }
+
+  &.info {
+    background-color: var(--color-info-bg);
+    color: var(--color-info-text);
+    border-color: var(--color-info-border);
+  }
+
+  &.neutral {
+    background-color: var(--color-neutral-bg);
+    color: var(--color-neutral-text);
+    border-color: var(--color-neutral-border);
+  }
+}

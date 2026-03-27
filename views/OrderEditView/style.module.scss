@@ -1,0 +1,66 @@
+@import '../../styles/mixins';
+
+.container {
+  min-height: 100vh;
+  @include flex-col;
+  padding-bottom: $space-32;
+}
+
+.content {
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+  width: 100%;
+  max-width: 42rem; // max-w-2xl
+  margin: 0 auto;
+}
+
+.statusSection {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-4;
+
+  @media (min-width: 640px) {
+    // sm
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.statusSelect {
+  height: 2.5rem !important; // h-10
+  background-color: rgba(255, 240, 245, 0.5) !important; // bg-accent-ghost/50
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.row {
+  display: flex;
+  gap: $space-3;
+}
+
+.colFlex {
+  flex: 1;
+}
+
+.colSmall {
+  width: 33.333333%; // w-1/3
+}
+
+.inputWhite {
+  background-color: #FFFFFF;
+}
+
+.iconSpacer {
+  margin-left: $space-2; // ml-2
+}

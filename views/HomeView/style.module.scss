@@ -1,0 +1,98 @@
+@import '../../styles/mixins';
+
+.container {
+  min-height: 100vh;
+  padding: $space-6 $space-6 $space-24;
+  @include flex-col;
+}
+
+.header {
+  margin-bottom: $space-10;
+  text-align: center;
+
+  .title {
+    margin-bottom: $space-1;
+  }
+
+  .subtitle {
+    color: rgba(192, 128, 129, 0.8); // accent-soft/80
+    font-weight: 500;
+    letter-spacing: 0.025em;
+  }
+}
+
+.loader {
+  @include flex-center;
+  padding: $space-10 0;
+  color: var(--text-accent-muted);
+}
+
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: $space-5;
+}
+
+.productCard {
+  position: relative;
+  overflow: hidden;
+
+  // The decorative corner blob
+  .decorativeBlob {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: $space-24;
+    height: $space-24;
+    background-color: var(--bg-accent-ghost);
+    border-bottom-left-radius: $radius-full;
+    margin-right: -$space-4;
+    margin-top: -$space-4;
+    transition: transform 0.3s ease;
+  }
+
+  // Hover styles via parent class
+  @media (hover: hover) {
+    &:hover {
+      .decorativeBlob {
+        transform: scale(1.1);
+      }
+      .actionIcon {
+        background-color: var(--color-primary);
+        color: var(--text-on-primary);
+      }
+    }
+  }
+
+  .cardContent {
+    position: relative;
+    z-index: 10;
+    @include flex-between;
+  }
+
+  .productTitle {
+    margin-bottom: $space-2;
+  }
+
+  .productMeta {
+    display: flex;
+    gap: $space-2;
+    color: var(--text-muted);
+  }
+
+  .actionIcon {
+    width: $space-10;
+    height: $space-10;
+    background-color: #FFFFFF;
+    border-radius: $radius-full;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    @include flex-center;
+    color: var(--text-accent-soft);
+    transition: all $transition-base;
+    
+    // Icon inside is rotated in logic or via class
+    svg {
+      transform: rotate(180deg);
+    }
+  }
+}

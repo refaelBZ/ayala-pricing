@@ -1,0 +1,106 @@
+@import '../../styles/mixins';
+
+.container {
+  min-height: 100vh;
+  padding: $space-6 $space-6 $space-28; // p-6 pb-28
+}
+
+.header {
+  @include flex-between;
+  margin-bottom: $space-8;
+  margin-top: $space-2;
+  
+  .subtitle {
+    color: var(--text-secondary);
+  }
+}
+
+.sectionTitle {
+  font-size: 1.25rem; // text-xl
+  font-weight: 700;
+  margin-top: $space-10;
+  margin-bottom: $space-4;
+}
+
+.listOverlay {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4; // space-y-4
+}
+
+.listDictionary {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3; // space-y-3
+}
+
+.listItem {
+  @include flex-between;
+
+  .itemTitle {
+    font-size: 1.125rem; // text-lg
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .badges {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    margin-top: $space-1;
+  }
+
+  .badge {
+    background-color: var(--bg-accent-ghost);
+    color: var(--text-accent);
+    padding: $space-1 $space-2;
+    border-radius: $radius-lg;
+    font-weight: 500;
+    border: 1px solid var(--border-light);
+  }
+
+  .meta {
+    color: var(--text-secondary);
+  }
+
+  .actions {
+    display: flex;
+    gap: $space-2;
+  }
+}
+
+.dictionaryTitle {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.dictionaryMeta {
+  color: var(--text-secondary);
+}
+
+.emptyText {
+  color: var(--text-muted);
+}
+
+.manageButton {
+  width: 100%;
+  padding: $space-3 0; // py-3
+  border: 1px dashed var(--border-default);
+  border-radius: $radius-xl;
+  color: var(--text-accent);
+  font-weight: 500;
+  transition: all $transition-base;
+  @include flex-center;
+  gap: $space-2;
+  
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--bg-accent-ghost);
+    }
+  }
+}
+
+.footerButtons {
+  display: flex;
+  gap: $space-3;
+}

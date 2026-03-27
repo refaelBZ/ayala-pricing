@@ -1,0 +1,307 @@
+@import '../../styles/mixins';
+
+.container {
+  min-height: 100vh;
+  @include flex-col;
+}
+
+.content {
+  padding: $space-6;
+  padding-bottom: $space-32;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $space-8;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  padding: $space-6 !important;
+  border-radius: $radius-3xl !important;
+}
+
+.label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: $space-2;
+}
+
+.radioGroup {
+  display: flex;
+  gap: $space-4;
+}
+
+.radioItem {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+
+  .radioText {
+    font-size: 0.875rem;
+  }
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    border-radius: $radius;
+  }
+
+  .checkboxText {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+  }
+}
+
+.emptyText {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.optionsSection {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+
+  .sectionLabel {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: 0 $space-1;
+  }
+}
+
+.optionCard {
+  background-color: var(--bg-accent-surface);
+  padding: $space-3;
+  border-radius: $radius-2xl;
+  border: 1px solid rgba(255, 228, 233, 0.5); // border-light/50
+}
+
+.optionRow {
+  display: flex;
+  gap: $space-2;
+  align-items: center;
+  margin-bottom: $space-2;
+
+  &.withMargin {
+    margin-bottom: $space-3;
+  }
+}
+
+.removeBtn {
+  color: var(--text-accent-muted);
+  padding: $space-2;
+  transition: color $transition-base;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-danger-text);
+    }
+  }
+}
+
+.priceLabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.triggeredContainer {
+  margin-top: $space-2;
+  padding-top: $space-2;
+  border-top: 1px solid rgba(255, 228, 233, 0.5);
+}
+
+.triggeredHeader {
+  @include flex-between;
+  margin-bottom: $space-2;
+  
+  .title {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .addBtn {
+    font-size: 0.75rem;
+    color: var(--text-accent);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+    padding: $space-1 $space-2;
+    border-radius: $radius-lg;
+    transition: background-color $transition-base;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--bg-accent-ghost);
+      }
+    }
+  }
+}
+
+.triggeredEmpty {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: $space-2 0;
+}
+
+.triggeredList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.triggeredItem {
+  padding: $space-2;
+  background-color: #FFFFFF;
+  border-radius: $radius-xl;
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.triggeredRow {
+  display: flex;
+  gap: $space-2;
+  align-items: center;
+
+  &.alignEnd {
+    align-items: flex-end;
+  }
+}
+
+.removeTriggeredBtn {
+  padding: 0.375rem;
+  color: var(--text-accent-muted);
+  transition: color $transition-base;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-danger-text);
+    }
+  }
+}
+
+.flex1 {
+  flex: 1;
+}
+
+.width16 {
+  width: 4rem; // w-16
+}
+
+.linkedContainer {
+  margin-top: $space-2;
+  padding-top: $space-2;
+  border-top: 1px solid rgba(255, 228, 233, 0.5);
+
+  .label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 0.375rem; // mb-1.5
+  }
+}
+
+.addOptionBtn {
+  width: 100%;
+  padding: $space-3 0; // py-3
+  border: 1px dashed var(--border-default);
+  border-radius: $radius-xl;
+  color: var(--text-accent-soft);
+  font-weight: 500;
+  transition: background-color $transition-base;
+  @include flex-center;
+  gap: $space-2;
+  font-size: 0.875rem;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--bg-accent-ghost);
+    }
+  }
+}
+
+.footerButtons {
+  display: flex;
+  gap: $space-3;
+}
+
+.titleInput {
+  font-weight: 700;
+  font-size: 1.125rem !important;
+
+  @media (min-width: 640px) {
+    font-size: 1.5rem !important;
+  }
+}
+
+.accentRadio, .accentCheckbox {
+  accent-color: var(--color-primary);
+}
+
+.optionInput {
+  height: 2.5rem;
+  font-size: 0.875rem;
+  background-color: #FFFFFF;
+}
+
+.priceInput {
+  width: 7rem;
+  height: 2.5rem;
+  font-size: 0.875rem;
+  background-color: #FFFFFF;
+}
+
+.triggerInput {
+  height: 2rem;
+  font-size: 0.75rem;
+  background-color: #FFFFFF;
+}
+
+.triggerCountInput {
+  height: 2rem;
+  font-size: 0.75rem;
+  background-color: #FFFFFF;
+  text-align: center;
+}
+
+.triggerSelect {
+  height: 1.75rem;
+  font-size: 0.75rem;
+  flex: 1;
+}
+
+.dictionaryIcon {
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.linkedSelect {
+  height: 2.25rem;
+  font-size: 0.875rem;
+}
+

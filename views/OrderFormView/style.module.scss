@@ -1,0 +1,216 @@
+@import '../../styles/mixins';
+
+.container {
+  min-height: 100vh;
+  @include flex-col;
+  padding-bottom: $space-32;
+}
+
+.content {
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: $space-6; // space-y-6
+  max-width: 42rem; // max-w-2xl
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Order Summary ────────── */
+
+.summaryList {
+  margin-top: $space-3;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.summaryItem {
+  background-color: rgba(255, 240, 245, 0.5); // accent-ghost/50
+  padding: $space-4;
+  border-radius: $radius-2xl;
+  font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.summaryHeader {
+  @include flex-between;
+  align-items: flex-start;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.summaryTitle {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.addonBadge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  background-color: var(--bg-accent-ghost);
+  color: var(--text-accent);
+  padding: 0.125rem $space-2;
+  border-radius: $radius-full;
+  border: 1px solid var(--border-light);
+}
+
+.summaryDetails {
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.625;
+  padding-right: $space-4; // pl-4 (RTL)
+  border-right: 2px solid var(--border-default);
+  font-size: 0.75rem;
+}
+
+.qtyRow {
+  @include flex-between;
+  padding-top: $space-1;
+}
+
+.qtyLabel {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.qtyControls {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.qtyBtn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: $radius-full;
+  border: 1px solid var(--border-default);
+  @include flex-center;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: background-color $transition-base;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  @media (hover: hover) {
+    &:not(:disabled):hover {
+      background-color: #FFFFFF;
+    }
+  }
+}
+
+.qtyValue {
+  width: 1.5rem;
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.itemTotal {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.totalRow {
+  margin-top: $space-4;
+  padding-top: $space-4;
+  border-top: 1px solid var(--border-subtle);
+  @include flex-between;
+  padding-right: $space-2;
+  padding-left: $space-2;
+}
+
+.totalLabel {
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.totalPrice {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-primary);
+}
+
+/* ── Dynamic Inputs ───────── */
+
+.dynamicSection {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.dynamicItem {
+  background-color: rgba(255, 240, 245, 0.3); // accent-ghost/30
+  padding: $space-4;
+  border-radius: $radius-2xl;
+  border: 1px solid var(--border-light);
+}
+
+.dynamicHeader {
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: $space-3;
+  font-size: 0.875rem;
+  @include flex-between;
+}
+
+.dynamicBadge {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-accent);
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 0 $space-2;
+  border-radius: $radius-full;
+}
+
+.dynamicFields {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.formInput {
+  background-color: #FFFFFF;
+  height: 2.5rem; // h-10
+  font-size: 0.875rem;
+}
+
+/* ── Form Sections ────────── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.row {
+  display: flex;
+  gap: $space-3;
+}
+
+.colFlex {
+  flex: 1;
+}
+
+.colSmall {
+  width: 33.333333%;
+}
+
+.iconSpacer {
+  margin-left: $space-2; // ml-2 => space after icon in button
+}

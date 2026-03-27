@@ -1,0 +1,41 @@
+@import '../../styles/mixins';
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.5); // bg-white/50
+  backdrop-filter: blur(4px); // backdrop-blur-sm
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 50;
+  @include flex-center;
+}
+
+.box {
+  background-color: #FFFFFF;
+  padding: $space-6;
+  border-radius: $radius-2xl;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid #FFE4E6; // border-rose-100
+  @include flex-col;
+  align-items: center;
+}
+
+.icon {
+  animation: spin 1s linear infinite;
+  color: #FB7185; // text-rose-400
+  margin-bottom: $space-2;
+}
+
+.text {
+  color: #4A3A31; // text-coffee-800
+  font-weight: 500;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
