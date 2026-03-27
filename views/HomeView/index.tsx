@@ -16,7 +16,7 @@ export const HomeView: React.FC<Props> = ({ data, loading, navigate, setSelected
 
             {loading ? (
                 <div className={styles.loader}>
-                    <Loader2 className="animate-spin" size={32} />
+                    <Loader2 className={styles.spinIcon} size={32} />
                 </div>
             ) : (
                 <div className={styles.productGrid}>

@@ -650,6 +650,28 @@ The sharing flow is initiated from the Order Details view via the **WhatsApp** o
 - RTL-first — all layout is right-to-left (Hebrew).
 - Mobile-first with `font-size: 16px !important` on inputs to prevent iOS zoom.
 
+### Styling Architecture
+
+The project uses **SCSS CSS Modules** — no Tailwind CSS. Every component and view has a co-located `style.module.scss` file. Class names are imported as a `styles` object and applied via `className={styles.myClass}`.
+
+The styling system is split across three layers:
+
+| File | Purpose |
+|------|---------|
+| `index.css` | CSS custom properties (design tokens) — linked from `index.html`, available globally |
+| `styles/globals.scss` | Imported once via `index.tsx`. Contains: base reset (`*`, `body`, `button`), typography global classes, form element defaults, and utility classes (`.glass-panel`, `.hide-scrollbar`) |
+| `styles/_variables.scss` | SCSS variables — spacing scale, radii, fonts, transitions. Imported by component modules via `@import 'variables'` |
+| `styles/_mixins.scss` | SCSS mixins — `flex-center`, `flex-between`, `flex-col`, `interactive`, `absolute-fill`, `respond-to` / `respond-down` breakpoint helpers |
+
+**Vite SCSS config** (`vite.config.ts`) uses the `modern-compiler` API:
+```ts
+css: {
+  preprocessorOptions: {
+    scss: { api: 'modern-compiler' }
+  }
+}
+```
+
 ### Design Tokens (`index.css`)
 
 All visual values are defined as CSS Variables on `:root`:
@@ -705,10 +727,10 @@ All visual values are defined as CSS Variables on `:root`:
 
 | Pattern | Implementation |
 |---------|---------------|
-| **Glassmorphism** | `backdrop-blur(12px)` + `bg-white/70` + `border-white/20` on headers and floating panels |
-| **Glass Panel** | Class `.glass-panel` — `bg: rgba(255,255,255,0.7)` + blur |
+| **Glassmorphism** | `backdrop-filter: blur(12px)` + `background: rgba(255,255,255,0.7)` + `border: 1px solid rgba(255,255,255,0.5)` on headers and floating panels |
+| **Glass Panel** | Global class `.glass-panel` in `globals.scss` — applies the glassmorphism style |
 | **Paper Slip** | `clipPath: polygon(...)` for zigzag torn-edge effect on the kitchen slip view |
-| **Sticky Footer** | `fixed bottom-6` with glass effect for price display + action buttons |
+| **Sticky Footer** | `position: fixed; bottom: 1.5rem` with glass effect for price display + action buttons |
 | **Hit Targets** | All interactive elements have a minimum 44px touch target |
 
 ---
@@ -722,51 +744,81 @@ All visual values are defined as CSS Variables on `:root`:
 | React | 19.2 | UI Framework |
 | TypeScript | 5.8 | Type Safety |
 | Vite | 6.2 | Build & Dev Server |
+| SCSS (Sass) | — | Component-scoped CSS Modules + global design system |
 | Firebase Firestore | 12.8 | Database (NoSQL) |
 | Firebase Auth | 12.8 | Admin Authentication |
 | Lucide React | 0.563 | Icon Library |
 
 ### File Structure
 
+Each component and view is a **folder** containing `index.tsx` (logic + JSX) and `style.module.scss` (scoped styles). This keeps styling co-located with the component it belongs to.
+
 ```
 ayala-pricing/
 ├── App.tsx                  # View Router — switches on ViewState
-├── index.tsx                # Entry Point
-├── index.html               # HTML Shell + Google Fonts
-├── index.css                # Design Token System
+├── index.tsx                # Entry Point — imports styles/globals.scss
+├── index.html               # HTML Shell + Google Fonts (no Tailwind CDN)
+├── index.css                # Design Token System (CSS custom properties)
 ├── types.ts                 # All TypeScript Interfaces
+│
+├── styles/                  # Global SCSS Design System
+│   ├── globals.scss         # Base reset, typography globals, utility classes
+│   ├── _variables.scss      # SCSS variables (spacing, radii, fonts, transitions)
+│   └── _mixins.scss         # SCSS mixins (flex-center, respond-to, etc.)
 │
 ├── hooks/
 │   └── useAppState.ts       # Centralized State Management (single hook)
 │
 ├── views/                   # Full-Screen Features (11 screens)
-│   ├── HomeView.tsx          # Home — product listing
-│   ├── CalculatorView.tsx    # Price calculator — MaxTier logic + global categories
-│   ├── OrderFormView.tsx     # Order form — static + dynamic fields (4 scopes)
-│   ├── OrdersDashboardView.tsx  # Orders list — multi-filter + cards
-│   ├── OrderDetailsView.tsx  # Order details — Paper Slip (read-only)
-│   ├── OrderEditView.tsx     # Order editing — statuses + details
-│   ├── AdminLoginView.tsx    # Admin login — Firebase Auth (email + password)
-│   ├── AdminDashboardView.tsx # Products + global categories + dictionaries dashboard
-│   ├── ProductEditorView.tsx # Product editor — 3-section: base data, tier matrix, categories
-│   ├── GlobalCategoryEditorView.tsx  # Global category editor — targeting + options + triggered fields
-│   └── DictionaryManagerView.tsx    # Global dictionary CRUD
+│   ├── HomeView/
+│   │   ├── index.tsx         # Home — product listing
+│   │   └── style.module.scss
+│   ├── CalculatorView/
+│   │   ├── index.tsx         # Price calculator — MaxTier logic + global categories
+│   │   └── style.module.scss
+│   ├── OrderFormView/
+│   │   ├── index.tsx         # Order form — static + dynamic fields (4 scopes)
+│   │   └── style.module.scss
+│   ├── OrdersDashboardView/
+│   │   ├── index.tsx         # Orders list — multi-filter + cards
+│   │   └── style.module.scss
+│   ├── OrderDetailsView/
+│   │   ├── index.tsx         # Order details — Paper Slip (read-only)
+│   │   └── style.module.scss
+│   ├── OrderEditView/
+│   │   ├── index.tsx         # Order editing — statuses + details
+│   │   └── style.module.scss
+│   ├── AdminLoginView/
+│   │   ├── index.tsx         # Admin login — Firebase Auth (email + password)
+│   │   └── style.module.scss
+│   ├── AdminDashboardView/
+│   │   ├── index.tsx         # Products + global categories + dictionaries dashboard
+│   │   └── style.module.scss
+│   ├── ProductEditorView/
+│   │   ├── index.tsx         # Product editor — 3-section: base data, tier matrix, categories
+│   │   └── style.module.scss
+│   ├── GlobalCategoryEditorView/
+│   │   ├── index.tsx         # Global category editor — targeting + options + triggered fields
+│   │   └── style.module.scss
+│   └── DictionaryManagerView/
+│       ├── index.tsx         # Global dictionary CRUD
+│       └── style.module.scss
 │
-├── components/              # Shared UI Components (16 components)
-│   ├── BaseCard.tsx
-│   ├── Button.tsx
-│   ├── IconButton.tsx
-│   ├── Input.tsx             # includes Input, TextArea, BaseSelect
-│   ├── LinkedProductModal.tsx # Bottom-sheet modal for linked product configuration
-│   ├── SubHeader.tsx
-│   ├── StickyFooter.tsx
-│   ├── SectionHeader.tsx
-│   ├── StatusBadge.tsx
-│   ├── FilterChip.tsx
-│   ├── ToggleGroup.tsx
-│   ├── GlobalHeader.tsx
-│   ├── Toast.tsx
-│   └── LoadingOverlay.tsx
+├── components/              # Shared UI Components (14 components)
+│   ├── BaseCard/            ├── index.tsx + style.module.scss
+│   ├── Button/              ├── index.tsx + style.module.scss
+│   ├── IconButton/          ├── index.tsx + style.module.scss
+│   ├── Input/               ├── index.tsx + style.module.scss  (Input, TextArea, BaseSelect)
+│   ├── LinkedProductModal/  ├── index.tsx + style.module.scss
+│   ├── SubHeader/           ├── index.tsx + style.module.scss
+│   ├── StickyFooter/        ├── index.tsx + style.module.scss
+│   ├── SectionHeader/       ├── index.tsx + style.module.scss
+│   ├── StatusBadge/         ├── index.tsx + style.module.scss
+│   ├── FilterChip/          ├── index.tsx + style.module.scss
+│   ├── ToggleGroup/         ├── index.tsx + style.module.scss
+│   ├── GlobalHeader/        ├── index.tsx + style.module.scss
+│   ├── Toast/               ├── index.tsx + style.module.scss
+│   └── LoadingOverlay/      └── index.tsx + style.module.scss
 │
 ├── services/
 │   └── storage.ts           # Firebase Abstraction Layer + Default Seeding
@@ -774,7 +826,7 @@ ayala-pricing/
 ├── firebase.json            # Firebase CLI config (points to firestore.rules)
 ├── firestore.rules          # Firestore Security Rules (deploy via Firebase CLI)
 ├── firestore.indexes.json   # Firestore composite indexes
-├── vite.config.ts           # Vite Config (port 3000, path aliases)
+├── vite.config.ts           # Vite Config (port 3000, SCSS modern-compiler, path aliases)
 ├── vite-env.d.ts            # Vite environment variable type declarations
 ├── tsconfig.json
 ├── vercel.json              # Deployment Config (SPA rewrites)

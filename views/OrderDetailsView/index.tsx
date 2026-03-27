@@ -17,7 +17,7 @@ export const OrderDetailsView: React.FC<Props> = ({
 }) => {
     if (!selectedOrder) {
         return (
-            <div className="min-h-screen flex items-center justify-center text-muted">
+            <div className={styles.notFound}>
                 <p>הזמנה לא נמצאה</p>
             </div>
         );
@@ -54,7 +54,7 @@ export const OrderDetailsView: React.FC<Props> = ({
             {/* Back Button (Admin only) */}
             {!isPublicView && (
                 <div className={styles.backButtonWrapper}>
-                    <Button variant="ghost" className="gap-2" onClick={() => navigate('ORDERS_DASHBOARD')}>
+                    <Button variant="ghost" onClick={() => navigate('ORDERS_DASHBOARD')}>
                         <ArrowRight size={18} /> חזרה לרשימה
                     </Button>
                 </div>

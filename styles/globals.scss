@@ -79,6 +79,16 @@
   font-family: 'Rubik', sans-serif;
 }
 
+button {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+}
+
 body {
   background: linear-gradient(135deg, var(--bg-app) 0%, var(--color-cream) 100%);
   color: var(--text-primary);

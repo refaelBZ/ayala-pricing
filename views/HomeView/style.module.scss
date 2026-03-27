@@ -89,10 +89,19 @@
     @include flex-center;
     color: var(--text-accent-soft);
     transition: all $transition-base;
-    
+
     // Icon inside is rotated in logic or via class
     svg {
       transform: rotate(180deg);
     }
   }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinIcon {
+  animation: spin 1s linear infinite;
 }
