@@ -170,6 +170,19 @@ export const generateUUID = () => {
   return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
+// Generates a human-friendly order ID, e.g. "AY-300326-1430" (30 Mar 2026, 14:30)
+// or "AY-300326-517" (5:17 — no leading zero on hours).
+// Used as both the Firestore document ID and the display code.
+export const generateOrderId = (): string => {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yy = String(now.getFullYear()).slice(-2);
+  const h = String(now.getHours());            // no leading zero
+  const min = String(now.getMinutes()).padStart(2, '0');
+  return `AY-${dd}${mm}${yy}-${h}${min}`;
+};
+
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 export const fetchProducts = async (): Promise<Product[]> => {

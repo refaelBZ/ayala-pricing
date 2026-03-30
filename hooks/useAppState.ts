@@ -230,14 +230,16 @@ export const useAppState = () => {
             if (order) {
                 setSelectedOrder(order);
             } else {
-                fetchOrderById(pendingOrderId).then(fetchedOrder => {
-                    if (fetchedOrder) {
-                        setSelectedOrder(fetchedOrder);
-                    } else {
-                        setViewInternal('HOME');
-                        window.history.replaceState({}, '', '/');
-                    }
-                });
+                setLoading(true);
+                fetchOrderById(pendingOrderId)
+                    .then(fetchedOrder => {
+                        if (fetchedOrder) setSelectedOrder(fetchedOrder);
+                        // If null — stay on ORDER_DETAILS, selectedOrder remains null → shows "לא נמצאה"
+                    })
+                    .catch(() => {
+                        // Permission error or network error — stay on ORDER_DETAILS, not HOME
+                    })
+                    .finally(() => setLoading(false));
             }
             sessionStorage.removeItem('_pendingOrderId');
         }

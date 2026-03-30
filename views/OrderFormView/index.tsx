@@ -9,7 +9,7 @@ import { StickyFooter } from '../../components/StickyFooter';
 import { SectionHeader } from '../../components/SectionHeader';
 import { BaseCard } from '../../components/BaseCard';
 import { ToggleGroup } from '../../components/ToggleGroup';
-import { saveOrderToFirestore, generateUUID } from '../../services/storage';
+import { saveOrderToFirestore, generateOrderId } from '../../services/storage';
 import styles from './style.module.scss';
 
 type Props = Pick<AppState, 'data' | 'pendingOrder' | 'setPendingOrder' | 'dynamicDetails' | 'setDynamicDetails' | 'orderForm' | 'setOrderForm' | 'navigate' | 'showToast' | 'setLoading' | 'loadData' | 'resetOrderForm' | 'setSelectedOrder'>;
@@ -52,7 +52,7 @@ export const OrderFormView: React.FC<Props> = ({
         });
 
         const newOrder: Order = {
-            id: generateUUID(),
+            id: generateOrderId(),
             createdAt: new Date().toISOString(),
             executionStatus: 'pending',
             paymentStatus: 'unpaid',

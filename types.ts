@@ -111,7 +111,7 @@ export interface Delivery {
 }
 
 export interface Order {
-  id: string;
+  id: string;               // Friendly order code e.g. "AY-130326-K7P" (new orders) or UUID (legacy)
   createdAt: string;
   executionStatus: ExecutionStatus;
   paymentStatus: PaymentStatus;

@@ -36,15 +36,18 @@ export const OrderDetailsView: React.FC<Props> = ({
         id
     } = selectedOrder;
 
+    // New orders: id is "AY-130326-K7P". Old orders: id is a UUID — show first 8 chars.
+    const displayCode = id.startsWith('AY-') ? id : id.slice(0, 8);
+
+    const publicUrl = `${window.location.origin}?orderId=${id}`;
+
     const handleShareWhatsApp = () => {
-        const url = `${window.location.origin}/orders/${id}`;
-        const text = `היי ${customer.name}, הנה פרטי ההזמנה שלך מאיה קייקס: ${url}`;
+        const text = `היי ${customer.name}, הנה פרטי ההזמנה שלך מאיילה קייקס: ${publicUrl}`;
         window.open(`https://wa.me/${customer.phone.replace(/^0/, '972')}?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     const handleCopyLink = () => {
-        const url = `${window.location.origin}/orders/${id}`;
-        navigator.clipboard.writeText(url).then(() => {
+        navigator.clipboard.writeText(publicUrl).then(() => {
             showToast('קישור הועתק ללוח');
         });
     };
@@ -65,7 +68,7 @@ export const OrderDetailsView: React.FC<Props> = ({
                 {/* Header */}
                 <div className={styles.receiptHeader}>
                     <h2 className={styles.brandTitle}>Ayala Cakes</h2>
-                    <p className={styles.orderIdLine}>הזמנה #{id.slice(0, 6)}</p>
+                    <p className={styles.orderIdLine}>הזמנה #{displayCode}</p>
                 </div>
 
                 {/* Content */}
