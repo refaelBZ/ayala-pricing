@@ -39,7 +39,7 @@ export const OrderDetailsView: React.FC<Props> = ({
     // New orders: id is "AY-130326-K7P". Old orders: id is a UUID — show first 8 chars.
     const displayCode = id.startsWith('AY-') ? id : id.slice(0, 8);
 
-    const publicUrl = `${window.location.origin}?orderId=${id}`;
+    const publicUrl = `${window.location.origin}/api/order-preview?orderId=${id}`;
 
     const handleShareWhatsApp = () => {
         const text = `היי ${customer.name}, הנה פרטי ההזמנה שלך מאיילה קייקס: ${publicUrl}`;
