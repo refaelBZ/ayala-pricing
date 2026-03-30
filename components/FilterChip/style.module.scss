@@ -1,0 +1,33 @@
+@import '../../styles/mixins';
+
+.chip {
+  white-space: nowrap;
+  padding: 0.5rem 1rem; // px-4 py-2
+  border-radius: $radius-full;
+  font-size: 0.875rem; // text-sm
+  font-weight: 500;
+  transition: all $transition-base;
+  border: 1px solid transparent; // Provide default border structure
+
+  &.active {
+    background-color: var(--color-primary); // Using primary since chip-active isn't directly defined in our variables usually, or var(--color-accent)
+    color: var(--text-on-primary); // Using on-primary
+    box-shadow: var(--shadow-md);
+    
+    // Fallback if specific chip vars exist:
+    // background-color: var(--bg-chip-active, var(--color-primary));
+    // color: var(--text-chip-active-text, #FFFFFF);
+  }
+
+  &.inactive {
+    background-color: #FFFFFF;
+    color: var(--text-secondary);
+    border-color: var(--border-light);
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--bg-accent-ghost);
+      }
+    }
+  }
+}

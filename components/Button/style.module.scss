@@ -1,0 +1,105 @@
+@import '../../styles/mixins';
+
+.button {
+  @include flex-center;
+  gap: $space-2;
+  padding: 0 $space-6;
+  border-radius: $radius-full;
+  font-weight: 500;
+  border: 1px solid transparent; // prevent layout shifts for bordered variants
+  
+  @include interactive;
+
+  // Sizes
+  &.md {
+    height: 3rem;
+    font-size: 1rem;
+    box-shadow: var(--shadow-soft);
+  }
+
+  &.lg {
+    height: 3.5rem;
+    font-size: 1.125rem;
+    box-shadow: var(--shadow-primary-glow);
+  }
+
+  // Variants
+  &.primary {
+    background: linear-gradient(to right, var(--color-primary), var(--color-primary-hover));
+    color: var(--text-on-primary);
+    
+    @media (hover: hover) {
+      &:hover {
+        background: linear-gradient(to right, var(--color-primary-hover), var(--color-primary-active));
+      }
+    }
+  }
+
+  &.secondary {
+    background-color: var(--bg-surface);
+    color: var(--color-primary);
+    border-color: var(--border-light);
+    
+    @media (hover: hover) {
+      &:hover {
+        border-color: var(--border-focus);
+        background-color: var(--bg-accent-ghost);
+      }
+    }
+  }
+
+  &.success {
+    background-color: var(--color-success-bg);
+    color: var(--color-success-text);
+    border-color: var(--color-success-border);
+    
+    @media (hover: hover) {
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+
+  &.danger {
+    background-color: var(--color-danger-bg);
+    color: var(--color-danger-text);
+    border-color: var(--color-danger-border);
+    
+    @media (hover: hover) {
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+
+  &.ghost {
+    background-color: transparent;
+    color: var(--text-secondary);
+    box-shadow: none;
+    
+    @media (hover: hover) {
+      &:hover {
+        color: var(--text-accent);
+        background-color: var(--bg-accent-ghost);
+      }
+    }
+  }
+
+  &.outline {
+    background-color: transparent;
+    color: var(--text-accent);
+    border: 2px solid var(--border-default);
+    box-shadow: none;
+    
+    @media (hover: hover) {
+      &:hover {
+        border-color: var(--color-primary);
+        background-color: var(--bg-accent-ghost);
+      }
+    }
+  }
+
+  &.fullWidth {
+    width: 100%;
+  }
+}

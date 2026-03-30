@@ -1,0 +1,65 @@
+@import '../../styles/mixins';
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-base;
+  
+  &:active {
+    transform: scale(0.95);
+  }
+
+  // Sizes
+  &.sm {
+    width: 2.25rem; // w-9
+    height: 2.25rem; // h-9
+    border-radius: $radius-xl; // rounded-xl
+  }
+  
+  &.md {
+    width: 2.75rem; // w-11
+    height: 2.75rem; // h-11
+    border-radius: $radius-2xl; // rounded-2xl
+  }
+
+  // Variants
+  &.ghost {
+    background-color: var(--bg-accent-ghost);
+    color: var(--text-accent-soft);
+    border: 1px solid transparent;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--color-primary-ghost);
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  &.danger {
+    background-color: var(--bg-surface);
+    color: var(--text-accent-muted);
+    border: 1px solid var(--border-light);
+
+    @media (hover: hover) {
+      &:hover {
+        color: var(--color-danger-text);
+        background-color: var(--color-danger-bg);
+      }
+    }
+  }
+
+  &.accent {
+    background-color: var(--bg-accent-ghost);
+    color: var(--text-accent-soft);
+    border: 1px solid transparent;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--color-rose-100);
+        color: var(--color-primary);
+      }
+    }
+  }
+}

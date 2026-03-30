@@ -1,0 +1,38 @@
+@import '../../styles/mixins';
+
+.card {
+  padding: 1.25rem; // p-5
+  text-align: right;
+  
+  &.interactive {
+    cursor: pointer;
+    transition: all $transition-base;
+    
+    @media (hover: hover) {
+      &:hover {
+        box-shadow: var(--shadow-card);
+      }
+    }
+  }
+
+  // Variants
+  &.elevated {
+    background-color: var(--bg-surface);
+    border-radius: $radius-3xl;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid #FFFFFF;
+  }
+
+  &.outlined {
+    background-color: var(--bg-surface);
+    border-radius: $radius-3xl;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); // shadow-sm
+    border: 1px solid rgba(255, 228, 233, 0.5); // border-light/50
+  }
+
+  &.flat {
+    background-color: rgba(255, 240, 245, 0.5); // accent-ghost/50
+    border-radius: $radius-2xl;
+    border: 1px solid var(--border-light);
+  }
+}

@@ -1,0 +1,273 @@
+@import '../../styles/mixins';
+
+.container {
+  min-height: 100vh;
+  @include flex-col;
+  padding-bottom: $space-24;
+}
+
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 20;
+  box-shadow: var(--shadow-sm);
+}
+
+.headerRow {
+  @include flex-between;
+  padding: $space-4 $space-4 $space-2;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem; // text-heading-2 ?
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.clearFilterBtn {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  font-size: 0.75rem;
+  color: var(--text-accent);
+  transition: color $transition-base;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-danger-text);
+    }
+  }
+}
+
+.filtersRow {
+  display: flex;
+  gap: $space-2;
+  overflow-x: auto;
+  padding-bottom: $space-3;
+  padding-left: $space-4;
+  padding-right: $space-4;
+  align-items: center;
+
+  // hide-scrollbar
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 0.375rem 0.75rem; // py-1.5 px-3
+  border-radius: $radius-full;
+  font-size: 0.875rem; // text-body-sm
+  font-weight: 600;
+  border: 1px solid;
+  transition: all $transition-base;
+  white-space: nowrap;
+
+  &.active {
+    background-color: var(--color-primary);
+    color: var(--text-on-primary);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-primary-glow);
+    transform: scale(1.02);
+  }
+
+  &.inactive {
+    background-color: #FFFFFF;
+    color: var(--text-secondary);
+    border-color: var(--border-default);
+
+    @media (hover: hover) {
+      &:hover {
+        border-color: var(--color-accent-soft);
+        color: var(--color-primary);
+      }
+    }
+  }
+}
+
+.separator {
+  flex-shrink: 0;
+  width: 1px;
+  height: 1.25rem; // h-5
+  background-color: var(--border-subtle);
+  margin: 0 $space-1;
+}
+
+.modeToggleLabel {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem; // gap-1.5
+  cursor: pointer;
+  font-size: 0.75rem; // text-caption
+  color: var(--text-secondary);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.checkbox {
+  border-radius: $radius-sm;
+  accent-color: var(--color-primary);
+}
+
+.filtersSummary {
+  font-size: 0.625rem; // text-micro
+  color: var(--text-muted);
+  padding-bottom: $space-2;
+  padding-left: $space-4;
+  padding-right: $space-4;
+}
+
+.cardsList {
+  padding: $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.emptyState {
+  text-align: center;
+  padding: $space-10 0;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.emptyText {
+  font-size: 1rem; // text-body-base
+}
+
+.emptyLink {
+  font-size: 0.75rem;
+  color: var(--text-accent);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.cardClickable {
+  cursor: pointer;
+}
+
+.cardDateRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin-bottom: $space-1;
+
+  svg {
+    color: var(--color-accent-soft);
+  }
+}
+
+.cardCustomer {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.125rem; // text-lg
+  color: var(--color-primary);
+  line-height: 1.25; // leading-tight
+}
+
+.cardItemsPreview {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.statusControlsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  align-items: center;
+}
+
+.statusSelect {
+  appearance: none;
+  cursor: pointer;
+  border-radius: $radius-xl;
+  border: 1px solid;
+  font-size: 0.75rem; // text-xs
+  font-weight: 600;
+  padding: 0.375rem 0.625rem; // px-2.5 py-1.5
+  transition: colors $transition-base;
+  outline: none;
+
+  &:focus {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor; // focus:ring-2 focus:ring-offset-1 approx
+  }
+
+  &.pending {
+    background-color: var(--color-neutral-bg);
+    color: var(--color-neutral-text);
+    border-color: var(--color-neutral-border);
+  }
+  &.in_progress, &.deposit {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning-text);
+    border-color: var(--color-warning-border);
+  }
+  &.ready, &.invoiceIssued {
+    background-color: var(--color-info-bg);
+    color: var(--color-info-text);
+    border-color: var(--color-info-border);
+  }
+  &.delivered, &.paid_full {
+    background-color: var(--color-success-bg);
+    color: var(--color-success-text);
+    border-color: var(--color-success-border);
+  }
+  &.unpaid {
+    background-color: var(--color-danger-bg);
+    color: var(--color-danger-text);
+    border-color: var(--color-danger-border);
+  }
+  &.invoiceMissing {
+    background-color: var(--color-neutral-bg);
+    color: var(--color-neutral-text);
+    border-color: var(--color-neutral-border);
+  }
+}
+
+.actionRow {
+  @include flex-between;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: $space-2;
+}
+
+.actionPrice {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.125rem; // text-lg
+  color: var(--color-primary);
+}
+
+.actionButtons {
+  display: flex;
+  gap: $space-1;
+  align-items: center;
+}

@@ -1,8 +1,0 @@
-﻿889a00e Fix: Manual price not added to total + add quantity selector in order form
-50bc324 Mobile: Replace header tabs with hamburger menu on small screens
-52d4d1d Add Firebase project config for rules deployment
-c5d98ba Security: Replace PIN auth with Firebase Auth + Firestore Security Rules
-36c5f29 Modify readme
-70ed93f Fix bug
-42bdc82 Pages based structure
-3619136 Fix order

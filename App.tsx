@@ -24,7 +24,7 @@ const App: React.FC = () => {
   const { view, toastMsg, loading } = state;
 
   return (
-    <div className="min-h-screen" dir="rtl">
+    <div dir="rtl">
       {!state.isPublicView && (
         <GlobalHeader view={view} isAdmin={state.isAdmin} navigate={state.navigate} logoutAdmin={state.logoutAdmin} />
       )}

@@ -1,0 +1,17 @@
+@import '../../styles/mixins';
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $space-4;
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border-light);
+  z-index: 30;
+}
+
+.container {
+  max-width: 42rem; // max-w-2xl
+  margin: 0 auto;
+}
