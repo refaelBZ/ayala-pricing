@@ -2,35 +2,36 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Admin = any authenticated Firebase Auth user.
-    // Only the business owner has credentials; no public sign-up exists.
-    function isAdmin() {
-      return request.auth != null;
-    }
-
     // Products: public read (needed for Calculator & Home), admin write only.
-    match /products/{productId} {
+    match /products/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if request.auth != null;
     }
 
     // Global categories: public read (needed for Calculator), admin write only.
-    match /global_categories/{categoryId} {
+    match /global_categories/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if request.auth != null;
+    }
+
+    // Global dictionaries: public read (needed for Calculator dropdowns), admin write only.
+    match /global_dictionaries/{id} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
 
     // Orders: admin has full CRUD.
     // Public users may GET a single order by ID (for the share link),
     // but LIST (fetching the whole collection) is denied.
     match /orders/{orderId} {
-      allow read, write: if isAdmin();
-      allow get: if true;   // allows getDoc() by ID — blocks getDocs() on collection
+      allow read, write: if request.auth != null;
+      allow get: if true;
     }
 
     // Private sub-document: holds internalNotes — admin only, never sent to public.
+    // Subcollections are NOT covered by the parent rule above — must be explicit.
     match /orders/{orderId}/private/{doc} {
-      allow read, write: if isAdmin();
+      allow read, write: if request.auth != null;
     }
   }
 }
