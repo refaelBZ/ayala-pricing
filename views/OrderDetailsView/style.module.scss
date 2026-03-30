@@ -20,7 +20,6 @@
 
 .receiptContainer {
   width: 100%;
-  max-width: 28rem; // max-w-md
   background-color: #FFFFFF;
   box-shadow: var(--shadow-card);
   position: relative;
@@ -313,4 +312,181 @@
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+}
+
+// ─── Work Mode Toggle ────────────────────────────────────────────────────────
+
+.workModeToggleWrapper {
+  width: 100%;
+  max-width: 28rem;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: $space-3;
+}
+
+.workModeToggle {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  border-radius: $radius-full;
+  border: 2px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  font-family: $font-sans;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background $transition-base, color $transition-base;
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--color-primary);
+      color: #fff;
+    }
+  }
+}
+
+.workModeToggleActive {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+// ─── Work Mode Layout ────────────────────────────────────────────────────────
+
+.workMode {
+  background-color: var(--color-cream-dark); // #F5F0E6 — warm cream
+
+  // Widen the receipt + action strips on tablet for better readability
+  @media (min-width: 768px) {
+    .backButtonWrapper,
+    .workModeToggleWrapper,
+    .actionsArea {
+      max-width: 52rem;
+    }
+  }
+
+  .receiptContainer {
+    box-shadow: none;
+    border-radius: $radius-xl;
+    overflow: hidden;
+  }
+
+  .content {
+    padding: $space-8;
+    gap: $space-8;
+  }
+
+  // ── Event date & time: massive, high-contrast block ──────────────────────
+
+  .eventDetails {
+    background-color: var(--color-coffee-900); // #382E2E — warm dark brown
+    padding: $space-6 $space-8;
+    border-radius: $radius-xl;
+    gap: $space-3;
+  }
+
+  .eventDateText {
+    font-size: 2.5rem;
+    line-height: 1.15;
+    color: var(--color-cream); // #FDFBF7 — warm white on dark bg
+  }
+
+  .eventTimeRow {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-rose-300); // #F0A0A8 — rose accent, pops on dark bg
+    gap: $space-3;
+  }
+
+  // ── Customer block ────────────────────────────────────────────────────────
+
+  .customerNameText {
+    font-size: 1.375rem;
+  }
+
+  .deliveryInfo {
+    font-size: 1rem;
+  }
+
+  // ── Items: larger names & quantities ─────────────────────────────────────
+
+  .itemsTitle {
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+  }
+
+  .itemRow {
+    gap: $space-4;
+    padding-bottom: $space-4;
+    border-bottom: 1px solid var(--border-light); // rose-100
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .itemName {
+    font-size: 1.75rem;
+    line-height: 1.2;
+  }
+
+  .itemQty {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary); // rose-400
+  }
+
+  .itemDetailsText {
+    font-size: 1rem;
+    color: var(--text-primary);
+  }
+
+  // ── Dynamic details (flavors, colors, piping): max readability ───────────
+
+  .dynamicDetailsBox {
+    background-color: var(--color-cream); // #FDFBF7 — warm off-white
+    border: 2px solid var(--color-rose-400); // primary rose
+    padding: $space-5;
+    font-size: 1.25rem;
+    gap: $space-3;
+    border-radius: $radius-lg;
+    margin-top: $space-3;
+  }
+
+  .dynamicRow {
+    gap: $space-3;
+    align-items: baseline;
+  }
+
+  .dynamicLabel {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-coffee-900); // #382E2E — darkest brand text
+  }
+
+  .dynamicValue {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-coffee-800); // #4A4040
+  }
+
+  // ── Internal notes: unmissable ────────────────────────────────────────────
+
+  .internalNotesBox {
+    background-color: var(--color-rose-100); // #FFE4E9 — soft rose bg
+    border: 3px solid var(--color-rose-500); // #A66061 — strong rose border
+    border-radius: $radius-xl;
+    padding: $space-6;
+    font-size: 1.125rem;
+    color: var(--color-rose-600); // #8C4A4B
+  }
+
+  .internalNotesText {
+    font-size: 1.375rem;
+    font-weight: 600;
+    margin-top: $space-2;
+    line-height: 1.5;
+    color: var(--color-coffee-900); // #382E2E — readable dark on light rose
+  }
 }

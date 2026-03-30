@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowRight, Edit, Phone, Mail, MapPin, Share2, Copy, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, Edit, Phone, Mail, MapPin, Share2, Copy, Clock, ChefHat } from 'lucide-react';
 import { AppState } from '../../hooks/useAppState';
 import { Button } from '../../components/Button';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -15,6 +15,13 @@ export const OrderDetailsView: React.FC<Props> = ({
     isAdmin,
     showToast
 }) => {
+    const [isWorkMode, setIsWorkMode] = useState(false);
+
+    // Default to Work Mode once admin auth resolves (isAdmin starts false during auth load)
+    useEffect(() => {
+        if (isAdmin) setIsWorkMode(true);
+    }, [isAdmin]);
+
     if (!selectedOrder) {
         return (
             <div className={styles.notFound}>
@@ -53,7 +60,20 @@ export const OrderDetailsView: React.FC<Props> = ({
     };
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${isWorkMode && isAdmin ? styles.workMode : ''}`}>
+            {/* Work Mode Toggle (Admin only) */}
+            {isAdmin && (
+                <div className={styles.workModeToggleWrapper}>
+                    <button
+                        className={`${styles.workModeToggle} ${isWorkMode ? styles.workModeToggleActive : ''}`}
+                        onClick={() => setIsWorkMode(prev => !prev)}
+                    >
+                        <ChefHat size={18} />
+                        {isWorkMode ? 'מצב קבלה' : 'מצב מטבח'}
+                    </button>
+                </div>
+            )}
+
             {/* Back Button (Admin only) */}
             {!isPublicView && (
                 <div className={styles.backButtonWrapper}>
@@ -65,11 +85,13 @@ export const OrderDetailsView: React.FC<Props> = ({
 
             {/* Receipt Container */}
             <div className={styles.receiptContainer}>
-                {/* Header */}
-                <div className={styles.receiptHeader}>
-                    <h2 className={styles.brandTitle}>Ayala Cakes</h2>
-                    <p className={styles.orderIdLine}>הזמנה #{displayCode}</p>
-                </div>
+                {/* Header — hidden in Work Mode */}
+                {!isWorkMode && (
+                    <div className={styles.receiptHeader}>
+                        <h2 className={styles.brandTitle}>Ayala Cakes</h2>
+                        <p className={styles.orderIdLine}>הזמנה #{displayCode}</p>
+                    </div>
+                )}
 
                 {/* Content */}
                 <div className={styles.content}>
@@ -80,7 +102,7 @@ export const OrderDetailsView: React.FC<Props> = ({
                         </h3>
                         {delivery.time && (
                             <div className={styles.eventTimeRow}>
-                                <Clock size={16} />
+                                <Clock size={isWorkMode ? 28 : 16} />
                                 <span>{delivery.time}</span>
                             </div>
                         )}
@@ -89,16 +111,19 @@ export const OrderDetailsView: React.FC<Props> = ({
                     {/* Customer Info */}
                     <div className={styles.customerInfoBox}>
                         <div className={styles.customerNameText}>{customer.name}</div>
-                        <div className={styles.contactLinks}>
-                            <a href={`tel:${customer.phone}`} className={styles.contactLink}>
-                                <Phone size={14} /> {customer.phone}
-                            </a>
-                            {customer.email && (
-                                <a href={`mailto:${customer.email}`} className={styles.contactLink}>
-                                    <Mail size={14} /> {customer.email}
+                        {/* Contact links — hidden in Work Mode */}
+                        {!isWorkMode && (
+                            <div className={styles.contactLinks}>
+                                <a href={`tel:${customer.phone}`} className={styles.contactLink}>
+                                    <Phone size={14} /> {customer.phone}
                                 </a>
-                            )}
-                        </div>
+                                {customer.email && (
+                                    <a href={`mailto:${customer.email}`} className={styles.contactLink}>
+                                        <Mail size={14} /> {customer.email}
+                                    </a>
+                                )}
+                            </div>
+                        )}
                         {/* Delivery Info */}
                         <div className={styles.deliveryInfo}>
                             <span className={styles.deliveryType}>{delivery.type === 'pickup' ? 'איסוף עצמי' : 'משלוח'}</span>
@@ -122,12 +147,15 @@ export const OrderDetailsView: React.FC<Props> = ({
                                             <span className={styles.itemQty}>× {item.quantity}</span>
                                         )}
                                     </div>
-                                    <div className={styles.itemPriceWrap}>
-                                        <span className={styles.itemTotalPrice}>₪{item.price * (item.quantity ?? 1)}</span>
-                                        {(item.quantity ?? 1) > 1 && (
-                                            <div className={styles.itemUnitPrice}>₪{item.price} ליחידה</div>
-                                        )}
-                                    </div>
+                                    {/* Prices — hidden in Work Mode */}
+                                    {!isWorkMode && (
+                                        <div className={styles.itemPriceWrap}>
+                                            <span className={styles.itemTotalPrice}>₪{item.price * (item.quantity ?? 1)}</span>
+                                            {(item.quantity ?? 1) > 1 && (
+                                                <div className={styles.itemUnitPrice}>₪{item.price} ליחידה</div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 <p className={styles.itemDetailsText}>{item.details}</p>
 
@@ -154,61 +182,67 @@ export const OrderDetailsView: React.FC<Props> = ({
                         </div>
                     )}
 
-                    {/* Total & Status */}
-                    <div className={styles.totalSection}>
-                        <div className={styles.totalRow}>
-                            <span>סה"כ לתשלום</span>
-                            <span>₪{totalPrice}</span>
+                    {/* Total & Status — hidden in Work Mode */}
+                    {!isWorkMode && (
+                        <div className={styles.totalSection}>
+                            <div className={styles.totalRow}>
+                                <span>סה"כ לתשלום</span>
+                                <span>₪{totalPrice}</span>
+                            </div>
+
+                            <div className={styles.statusBadges}>
+                                <StatusBadge variant={
+                                    paymentStatus === 'paid_full' ? 'success' :
+                                        paymentStatus === 'deposit' ? 'warning' : 'danger'
+                                }>
+                                    {paymentStatus === 'paid_full' ? 'שולם מלא' : paymentStatus === 'deposit' ? 'שולמה מקדמה' : 'לא שולם'}
+                                </StatusBadge>
+
+                                <StatusBadge variant={
+                                    executionStatus === 'delivered' ? 'success' :
+                                        executionStatus === 'ready' ? 'info' :
+                                            executionStatus === 'in_progress' ? 'warning' : 'neutral'
+                                }>
+                                    {executionStatus === 'delivered' ? 'נמסר' : executionStatus === 'ready' ? 'מוכן' : executionStatus === 'in_progress' ? 'בהכנה' : 'טרם התחיל'}
+                                </StatusBadge>
+
+                                {isInvoiceIssued && <StatusBadge variant="info">הופקה קבלה</StatusBadge>}
+                            </div>
                         </div>
-
-                        <div className={styles.statusBadges}>
-                            <StatusBadge variant={
-                                paymentStatus === 'paid_full' ? 'success' :
-                                    paymentStatus === 'deposit' ? 'warning' : 'danger'
-                            }>
-                                {paymentStatus === 'paid_full' ? 'שולם מלא' : paymentStatus === 'deposit' ? 'שולמה מקדמה' : 'לא שולם'}
-                            </StatusBadge>
-
-                            <StatusBadge variant={
-                                executionStatus === 'delivered' ? 'success' :
-                                    executionStatus === 'ready' ? 'info' :
-                                        executionStatus === 'in_progress' ? 'warning' : 'neutral'
-                            }>
-                                {executionStatus === 'delivered' ? 'נמסר' : executionStatus === 'ready' ? 'מוכן' : executionStatus === 'in_progress' ? 'בהכנה' : 'טרם התחיל'}
-                            </StatusBadge>
-
-                            {isInvoiceIssued && <StatusBadge variant="info">הופקה קבלה</StatusBadge>}
-                        </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Paper Zigzag Bottom Effect */}
-                <div
-                    className={styles.zigzagEdge}
-                    style={{
-                        clipPath: 'polygon(0% 0%, 0% 100%, 2% 0%, 4% 100%, 6% 0%, 8% 100%, 10% 0%, 12% 100%, 14% 0%, 16% 100%, 18% 0%, 20% 100%, 22% 0%, 24% 100%, 26% 0%, 28% 100%, 30% 0%, 32% 100%, 34% 0%, 36% 100%, 38% 0%, 40% 100%, 42% 0%, 44% 100%, 46% 0%, 48% 100%, 50% 0%, 52% 100%, 54% 0%, 56% 100%, 58% 0%, 60% 100%, 62% 0%, 64% 100%, 66% 0%, 68% 100%, 70% 0%, 72% 100%, 74% 0%, 76% 100%, 78% 0%, 80% 100%, 82% 0%, 84% 100%, 86% 0%, 88% 100%, 90% 0%, 92% 100%, 94% 0%, 96% 100%, 98% 0%, 100% 100%, 100% 0%)',
-                    }}
-                ></div>
+                {/* Paper Zigzag Bottom Effect — hidden in Work Mode */}
+                {!isWorkMode && (
+                    <div
+                        className={styles.zigzagEdge}
+                        style={{
+                            clipPath: 'polygon(0% 0%, 0% 100%, 2% 0%, 4% 100%, 6% 0%, 8% 100%, 10% 0%, 12% 100%, 14% 0%, 16% 100%, 18% 0%, 20% 100%, 22% 0%, 24% 100%, 26% 0%, 28% 100%, 30% 0%, 32% 100%, 34% 0%, 36% 100%, 38% 0%, 40% 100%, 42% 0%, 44% 100%, 46% 0%, 48% 100%, 50% 0%, 52% 100%, 54% 0%, 56% 100%, 58% 0%, 60% 100%, 62% 0%, 64% 100%, 66% 0%, 68% 100%, 70% 0%, 72% 100%, 74% 0%, 76% 100%, 78% 0%, 80% 100%, 82% 0%, 84% 100%, 86% 0%, 88% 100%, 90% 0%, 92% 100%, 94% 0%, 96% 100%, 98% 0%, 100% 100%, 100% 0%)',
+                        }}
+                    ></div>
+                )}
             </div>
 
             {/* Actions Area */}
             <div className={styles.actionsArea}>
-                {/* Share Actions (Visible to everyone) */}
-                <div className={styles.shareRow}>
-                    <p className={styles.shareLabel}>שתף הזמנה:</p>
-                    <IconButton
-                        icon={<Share2 size={18} />}
-                        onClick={handleShareWhatsApp}
-                        label="שתף בוואטסאפ"
-                        variant="success"
-                    />
-                    <IconButton
-                        icon={<Copy size={18} />}
-                        onClick={handleCopyLink}
-                        label="העתק קישור"
-                        variant="ghost"
-                    />
-                </div>
+                {/* Share Actions — hidden in Work Mode */}
+                {!isWorkMode && (
+                    <div className={styles.shareRow}>
+                        <p className={styles.shareLabel}>שתף הזמנה:</p>
+                        <IconButton
+                            icon={<Share2 size={18} />}
+                            onClick={handleShareWhatsApp}
+                            label="שתף בוואטסאפ"
+                            variant="success"
+                        />
+                        <IconButton
+                            icon={<Copy size={18} />}
+                            onClick={handleCopyLink}
+                            label="העתק קישור"
+                            variant="ghost"
+                        />
+                    </div>
+                )}
 
                 {/* Edit Action (Admin Only) */}
                 {isAdmin && (
